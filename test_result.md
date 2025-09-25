@@ -111,11 +111,14 @@ backend:
     file: "earthimager_wrapper.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "STG parser successfully extracts electrode positions and measurements from AGI format"
+      - working: true
+        agent: "testing"
+        comment: "STG file processing tested successfully with toy-14-dd data. Correctly parsed 74 measurements and 14 electrodes with electrode spacing 0.999m. Voltage range -7.43 to -0.098V, resistivity range 131.8-160.2 ohm-m. API endpoint /api/earthimager/upload-stg working correctly."
 
   - task: "INI File Processing"
     implemented: true
