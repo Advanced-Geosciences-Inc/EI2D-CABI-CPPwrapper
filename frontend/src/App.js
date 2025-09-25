@@ -349,6 +349,8 @@ const EarthImagerInterface = () => {
             onRunForwardModel={runForwardModel}
             onRunRealForwardModel={runRealForwardModel}
             onRunInversion={runInversion}
+            onValidateData={validateDataFlow}
+            onDebugProcessing={debugProcessingSteps}
             onGenerateIni={generateIniFile}
             loading={loading}
             uploadedFiles={uploadedFiles}
