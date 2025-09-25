@@ -95,6 +95,73 @@ async def run_full_inversion(ini_file: UploadFile = File(...), stg_file: UploadF
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inversion workflow failed: {str(e)}")
 
+@api_router.post("/earthimager/generate-plots")
+async def generate_ei2d_plots(
+    out_content: str = Form(...),
+    inversion_slope_factor: float = Form(0.5),
+    pseudosection_slope_factor: float = Form(0.3),
+    colormap: str = Form("jet"),
+    show_contours: bool = Form(False),
+    all_iterations: bool = Form(False)
+):
+    """Generate EarthImager 2D plots from OUT file content"""
+    
+    try:
+        from ei2d_visualization import visualization_service, PlotOptionsValidator
+        
+        # Validate plot options
+        options = PlotOptionsValidator.validate_options({
+            "inversion_slope_factor": inversion_slope_factor,
+            "pseudosection_slope_factor": pseudosection_slope_factor,
+            "colormap": colormap,
+            "show_contours": show_contours,
+            "all_iterations_pseudosections": all_iterations
+        })
+        
+        # Generate plots
+        result = visualization_service.generate_plots_from_out_content(
+            out_file_content=out_content,
+            plot_options=options
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Plot generation failed: {str(e)}")
+
+@api_router.post("/earthimager/generate-single-plot")
+async def generate_single_plot(
+    out_content: str = Form(...),
+    plot_type: str = Form(...),
+    colormap: str = Form("jet"),
+    show_contours: bool = Form(False)
+):
+    """Generate a specific EarthImager 2D plot"""
+    
+    valid_plot_types = [
+        "convergence", "measured_pseudosection", "calculated_pseudosection",
+        "inversion_result", "crossplot"
+    ]
+    
+    if plot_type not in valid_plot_types:
+        raise HTTPException(status_code=400, detail=f"Invalid plot type. Valid types: {valid_plot_types}")
+    
+    try:
+        from ei2d_visualization import visualization_service
+        
+        options = {"colormap": colormap, "show_contours": show_contours}
+        
+        result = visualization_service.generate_specific_plot(
+            out_file_content=out_content,
+            plot_type=plot_type,
+            options=options
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Single plot generation failed: {str(e)}")
+
 @api_router.post("/earthimager/download-out-file")
 async def download_out_file(content: str = Form(...)):
     """Download generated OUT file"""
