@@ -290,7 +290,7 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
 
             <div className="flex justify-end space-x-4">
               <button
-                onClick={runForwardModel}
+                onClick={onRunForwardModel}
                 disabled={loading}
                 className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
@@ -298,9 +298,9 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
                 <span>{loading ? 'Running...' : 'Run Forward Model (Mock)'}</span>
               </button>
               
-              {(uploadedFiles.ini && uploadedFiles.stg) && (
+              {(uploadedFiles?.ini && uploadedFiles?.stg) && (
                 <button
-                  onClick={runRealForwardModel}
+                  onClick={onRunRealForwardModel}
                   disabled={loading}
                   className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
