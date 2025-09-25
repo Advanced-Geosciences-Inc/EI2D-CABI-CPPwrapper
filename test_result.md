@@ -194,9 +194,7 @@ test_plan:
   current_focus:
     - "Forward Modeling C-ABI Integration"
     - "Inversion Workflow with OUT File Generation"
-  stuck_tasks:
-    - "Forward Modeling C-ABI Integration"
-    - "Inversion Workflow with OUT File Generation"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
