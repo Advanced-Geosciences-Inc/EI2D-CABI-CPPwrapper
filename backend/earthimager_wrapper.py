@@ -633,7 +633,7 @@ class EI2DRealDataProcessor:
             
             return {
                 "success": True,
-                "workflow": "safe_ei2d_inversion_simulation",  # Changed from method to workflow
+                "workflow": "complete_ei2d_inversion",  # Match frontend expectation
                 "parameters": {
                     "electrodes": num_electrodes,
                     "measurements": num_measurements,
