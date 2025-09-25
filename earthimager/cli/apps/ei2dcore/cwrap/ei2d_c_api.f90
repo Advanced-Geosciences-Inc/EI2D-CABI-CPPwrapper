@@ -186,3 +186,108 @@ subroutine ei2d_ForwardFD(NodeX, NodeY, Cond, VIcalc, Jacobian,                 
 
   ! (no deallocation required; process ends—kept simple for debugging)
 end subroutine ei2d_ForwardFD
+
+! ---------------------- C ABI: InitInvGlobals -----------------------
+subroutine ei2d_InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, &
+                               InvMethod, IPInvMethod, MaxNumIterInvCG, IPPosMeth, &
+                               ModResoFactor, EpsilonD, EpsilonM) bind(C, name='ei2d_InitInvGlobals')
+  use iso_c_binding
+  implicit none
+  ! C ABI scalars
+  integer(c_int),  value :: NumData, NumElemX, NumElemY, NumParamX, NumParamY
+  integer(c_int),  value :: InvMethod, IPInvMethod, MaxNumIterInvCG, IPPosMeth
+  real(c_double),  value :: ModResoFactor, EpsilonD, EpsilonM
+  
+  ! engine interface
+  interface
+    subroutine InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, InvMethod, &
+                             IPInvMethod, MaxNumIterInvCG, IPPosMeth, ModResoFactor, EpsilonD, EpsilonM)
+      implicit none
+      integer, intent(in) :: NumData, NumElemX, NumElemY, NumParamX, NumParamY, MaxNumIterInvCG
+      integer, intent(in) :: InvMethod, IPInvMethod, IPPosMeth
+      real, intent(in) :: ModResoFactor, EpsilonD, EpsilonM
+    end subroutine
+  end interface
+  
+  ! local kind-converted reals
+  real :: r_ModResoFactor, r_EpsilonD, r_EpsilonM
+  
+  r_ModResoFactor = real(ModResoFactor, kind(r_ModResoFactor))
+  r_EpsilonD = real(EpsilonD, kind(r_EpsilonD))
+  r_EpsilonM = real(EpsilonM, kind(r_EpsilonM))
+  
+  call InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, &
+                     InvMethod, IPInvMethod, MaxNumIterInvCG, IPPosMeth, &
+                     r_ModResoFactor, r_EpsilonD, r_EpsilonM)
+end subroutine ei2d_InitInvGlobals
+
+! ---------------------- C ABI: InvPCGLS --------------------------------
+subroutine ei2d_InvPCGLS(ObsData, CalcData, DataWeight, ModelParam, PriorModel, &
+                         ModelUpdate, Jacobian, DampingFactor, ResIPFlag, IterNum, &
+                         nData, nParam) bind(C, name='ei2d_InvPCGLS')
+  use iso_c_binding
+  use GlobalInv, only: gNumData, gNumParam
+  implicit none
+  ! C ABI dummies
+  real(c_double),  intent(in)    :: ObsData(*), CalcData(*), DataWeight(*)
+  real(c_double),  intent(in)    :: ModelParam(*), PriorModel(*), Jacobian(*)
+  real(c_double),  intent(inout) :: ModelUpdate(*)
+  real(c_double),  value         :: DampingFactor
+  integer(c_int),  value         :: ResIPFlag, IterNum, nData, nParam
+  
+  ! engine interface
+  interface
+    subroutine InvPCGLS(ObsData, CalcData, DataWeight, ModelParam, PriorModel, &
+                       ModelUpdate, Jacobian, DampingFactor, ResIPFlag, IterNum)
+      use GlobalInv
+      implicit none
+      real, intent(out), dimension(1:gNumParam) :: ModelUpdate
+      real, intent(in), dimension(1:gNumData)  :: ObsData, CalcData, DataWeight
+      real, intent(in), dimension(1:gNumParam) :: ModelParam, PriorModel
+      real, intent(in), dimension(1:gNumData*gNumParam) :: Jacobian
+      real, intent(in) :: DampingFactor
+      integer, intent(in) :: ResIPFlag, IterNum
+    end subroutine
+  end interface
+  
+  ! locals (engine-kind working arrays)
+  integer :: i
+  real, allocatable :: obs(:), calc(:), weight(:), mparam(:), prior(:), update(:), jac(:)
+  real :: r_DampingFactor
+  
+  ! allocate & copy arrays
+  allocate(obs(nData), calc(nData), weight(nData))
+  allocate(mparam(nParam), prior(nParam), update(nParam))
+  allocate(jac(nData*nParam))
+  
+  ! copy input arrays with kind conversion
+  do i = 1, nData
+    obs(i) = real(ObsData(i), kind(obs))
+    calc(i) = real(CalcData(i), kind(calc))
+    weight(i) = real(DataWeight(i), kind(weight))
+  end do
+  
+  do i = 1, nParam
+    mparam(i) = real(ModelParam(i), kind(mparam))
+    prior(i) = real(PriorModel(i), kind(prior))
+  end do
+  
+  do i = 1, nData*nParam
+    jac(i) = real(Jacobian(i), kind(jac))
+  end do
+  
+  r_DampingFactor = real(DampingFactor, kind(r_DampingFactor))
+  
+  ! call inversion
+  call InvPCGLS(obs, calc, weight, mparam, prior, update, jac, r_DampingFactor, ResIPFlag, IterNum)
+  
+  ! copy results back
+  do i = 1, nParam
+    ModelUpdate(i) = real(update(i), c_double)
+  end do
+  
+  ! cleanup
+  deallocate(obs, calc, weight, mparam, prior, update, jac)
+end subroutine ei2d_InvPCGLS
+
+end
