@@ -145,6 +145,161 @@ async def run_forward_model(params: ForwardModelParams):
         resistivity=params.resistivity
     )
 
+@api_router.post("/earthimager/validate-data")
+async def validate_data_flow(ini_file: UploadFile = File(...), stg_file: UploadFile = File(...)):
+    """Validate and inspect data processing without running full calculations"""
+    
+    try:
+        # Read file contents
+        ini_content = (await ini_file.read()).decode('utf-8')
+        stg_content = (await stg_file.read()).decode('utf-8')
+        
+        print(f"\n=== DATA VALIDATION REPORT ===")
+        print(f"INI File: {ini_file.filename} ({len(ini_content)} chars)")
+        print(f"STG File: {stg_file.filename} ({len(stg_content)} chars)")
+        
+        # Parse files and show detailed breakdown
+        from earthimager_wrapper import INIParser, STGParser
+        
+        ini_data = INIParser.parse_ini(ini_content)
+        stg_data = STGParser.parse_stg(stg_content)
+        
+        # Extract specific values for validation
+        forward_params = ini_data.get("Forward", {})
+        resinv_params = ini_data.get("ResInv", {})
+        
+        validation_report = {
+            "success": True,
+            "files": {
+                "ini_sections": list(ini_data.keys()),
+                "stg_measurements": len(stg_data["full_measurements"]),
+                "stg_electrodes": len(stg_data["electrodes"])
+            },
+            "parsed_parameters": {
+                "forward_method": forward_params.get("ForwModMeth", "Not found"),
+                "forward_solver": forward_params.get("ForwSolver", "Not found"),
+                "bc_type": forward_params.get("BCType", "Not found"),
+                "max_iterations": resinv_params.get("MaxNumInvIter", "Not found"),
+                "lagrange": resinv_params.get("Lagrange", "Not found"),
+                "target_rms": resinv_params.get("MaxRMSRes", "Not found")
+            },
+            "survey_validation": {
+                "electrode_spacing": stg_data.get("electrode_spacing", 0),
+                "voltage_range": stg_data.get("voltage_range", {}),
+                "resistivity_range": stg_data.get("resistivity_range", {}),
+                "measurement_sample": stg_data["measurements"][:3] if stg_data["measurements"] else []
+            },
+            "data_integrity": {
+                "all_measurements_have_coordinates": all(
+                    "electrode_a" in m and "electrode_b" in m and "electrode_m" in m and "electrode_n" in m
+                    for m in stg_data["full_measurements"][:10]
+                ),
+                "voltage_current_present": all(
+                    "voltage" in m and "current" in m and "apparent_resistivity" in m
+                    for m in stg_data["full_measurements"][:10]
+                ),
+                "coordinate_consistency": len(set([
+                    f"{m['electrode_a']['x']:.1f}" for m in stg_data["full_measurements"][:10]
+                ])) > 1  # Check if we have multiple electrode positions
+            }
+        }
+        
+        print(f"Forward Method: {validation_report['parsed_parameters']['forward_method']}")
+        print(f"Survey measurements: {validation_report['files']['stg_measurements']}")
+        print(f"Electrode spacing: {validation_report['survey_validation']['electrode_spacing']}")
+        
+        return validation_report
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Validation failed"
+        }
+
+@api_router.post("/earthimager/debug-processing")
+async def debug_processing_steps(ini_file: UploadFile = File(...), stg_file: UploadFile = File(...)):
+    """Debug each step of the processing pipeline with detailed logging"""
+    
+    try:
+        ini_content = (await ini_file.read()).decode('utf-8')
+        stg_content = (await stg_file.read()).decode('utf-8')
+        
+        debug_info = {"steps": [], "success": True}
+        
+        # Step 1: File parsing
+        debug_info["steps"].append({
+            "step": 1,
+            "name": "File Parsing",
+            "status": "completed",
+            "details": {
+                "ini_size": len(ini_content),
+                "stg_size": len(stg_content)
+            }
+        })
+        
+        # Step 2: Data extraction
+        from earthimager_wrapper import EI2DRealDataProcessor
+        processor = EI2DRealDataProcessor()
+        
+        from earthimager_wrapper import INIParser, STGParser
+        ini_data = INIParser.parse_ini(ini_content)
+        stg_data = STGParser.parse_stg(stg_content)
+        
+        debug_info["steps"].append({
+            "step": 2, 
+            "name": "Data Extraction",
+            "status": "completed",
+            "details": {
+                "ini_sections": len(ini_data),
+                "measurements_found": len(stg_data["full_measurements"]),
+                "electrodes_found": len(stg_data["electrodes"])
+            }
+        })
+        
+        # Step 3: Mesh generation
+        mesh_result = processor._generate_inversion_mesh(stg_data["electrodes"], stg_data["full_measurements"])
+        
+        debug_info["steps"].append({
+            "step": 3,
+            "name": "Mesh Generation", 
+            "status": "completed",
+            "details": {
+                "mesh_nodes_x": mesh_result["nodes_x"],
+                "mesh_nodes_y": mesh_result["nodes_y"],
+                "total_nodes": mesh_result["total_nodes"],
+                "mesh_elements": mesh_result["total_elements"],
+                "parameters": mesh_result["num_parameters"]
+            }
+        })
+        
+        # Step 4: Compare with expected values (your toy example reference)
+        expected_electrodes = 14
+        expected_measurements = 74
+        
+        validation_checks = {
+            "electrode_count_match": len(stg_data["electrodes"]) == expected_electrodes,
+            "measurement_count_match": len(stg_data["full_measurements"]) == expected_measurements,
+            "mesh_reasonable": 300 <= mesh_result["total_nodes"] <= 1000,
+            "parameters_reasonable": 100 <= mesh_result["num_parameters"] <= 500
+        }
+        
+        debug_info["steps"].append({
+            "step": 4,
+            "name": "Validation Checks",
+            "status": "completed" if all(validation_checks.values()) else "warnings",
+            "details": validation_checks
+        })
+        
+        return debug_info
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "debug_info": debug_info if 'debug_info' in locals() else {}
+        }
+
 @api_router.post("/earthimager/upload-ini")
 async def upload_ini_file(file: UploadFile = File(...)):
     """Upload and process INI configuration file"""
