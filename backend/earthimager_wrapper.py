@@ -295,134 +295,181 @@ class EI2DRealDataProcessor:
     def _run_real_forward_modeling(self, electrodes: List, measurements: List, 
                                  forw_mod_meth: int, forw_solver: int, bc_type: int,
                                  forw_accuracy: int, forw_cg_iter: int, forw_cg_resid: float) -> Dict[str, Any]:
-        """Run actual EI2D forward modeling using C-ABI with proper array sizing"""
+        """Run actual EI2D forward modeling using C-ABI with corrected array sizing"""
         
         try:
             print(f"Starting real EI2D forward modeling with {len(electrodes)} electrodes, {len(measurements)} measurements")
             
-            # Extract electrode positions and survey data carefully
-            electrode_positions = {}
-            for i, elec in enumerate(electrodes):
-                electrode_positions[elec['key']] = i + 1  # 1-based indexing
+            # CRITICAL FIX: Proper electrode mapping and mesh sizing for toy-14-dd data
+            # The Fortran error suggests array bounds mismatch in mesh/electrode sizing
             
-            # Build ABMN survey configuration
+            # Extract electrode positions more carefully
+            electrode_x_positions = sorted([elec['x'] for elec in electrodes])
+            num_electrodes = len(electrode_x_positions)
             nData = len(measurements)
-            stingCMD = []
             
-            for meas in measurements:
-                # Map electrode positions to indices
-                a_key = f"{meas['electrode_a']['x']:.1f}_{meas['electrode_a']['y']:.1f}"
-                b_key = f"{meas['electrode_b']['x']:.1f}_{meas['electrode_b']['y']:.1f}"
-                m_key = f"{meas['electrode_m']['x']:.1f}_{meas['electrode_m']['y']:.1f}"
-                n_key = f"{meas['electrode_n']['x']:.1f}_{meas['electrode_n']['y']:.1f}"
-                
-                a_idx = electrode_positions.get(a_key, 1)
-                b_idx = electrode_positions.get(b_key, 1)
-                m_idx = electrode_positions.get(m_key, 1)
-                n_idx = electrode_positions.get(n_key, 1)
-                
-                stingCMD.extend([a_idx, b_idx, m_idx, n_idx])
+            print(f"Electrode X positions: {electrode_x_positions}")
+            print(f"Electrode count: {num_electrodes}, Measurement count: {nData}")
             
-            stingCMD = np.array(stingCMD, dtype=np.int32)
+            # FIX: More conservative mesh sizing to avoid array bounds errors
+            # Based on EarthImager 2D mesh generation: 
+            # - Surface nodes should match electrode positions exactly
+            # - Depth layers should be reasonable for the survey geometry
             
-            # Create a simplified mesh for testing
-            # Use electrode positions to define surface nodes
-            x_positions = sorted([elec['x'] for elec in electrodes])
-            y_positions = [0.0]  # Surface
+            # Calculate electrode spacing
+            electrode_spacing = 1.0
+            if len(electrode_x_positions) >= 2:
+                electrode_spacing = electrode_x_positions[1] - electrode_x_positions[0]
             
-            # Add some depth layers for basic 2D mesh
-            max_x = max(x_positions)
-            spacing = 1.0
-            if len(x_positions) > 1:
-                spacing = x_positions[1] - x_positions[0]
+            print(f"Calculated electrode spacing: {electrode_spacing}")
             
-            # Simple depth progression
-            for i in range(1, 6):
-                y_positions.append(i * spacing * 0.5)
+            # Conservative mesh dimensions (avoid over-sizing)
+            # Use electrode positions directly for X coordinates
+            mesh_x_coords = electrode_x_positions.copy()
             
-            nNx = len(x_positions)
-            nNy = len(y_positions)
+            # Add minimal padding (just 1 electrode spacing on each side)
+            min_x = min(mesh_x_coords)
+            max_x = max(mesh_x_coords)
+            mesh_x_coords.insert(0, min_x - electrode_spacing)
+            mesh_x_coords.append(max_x + electrode_spacing)
+            
+            # Conservative depth layers (avoid deep mesh that causes array issues)
+            mesh_y_coords = [0.0]  # Surface
+            depth = 0.0
+            layer_thickness = electrode_spacing * 0.5
+            
+            # Only 4 depth layers to stay conservative
+            for i in range(4):
+                depth += layer_thickness
+                mesh_y_coords.append(depth)
+                layer_thickness *= 1.2
+            
+            nNx = len(mesh_x_coords)
+            nNy = len(mesh_y_coords)
             nNodes = nNx * nNy
-            nElem = max(1, (nNx - 1) * (nNy - 1))  # Ensure at least 1 element
+            nElem = (nNx - 1) * (nNy - 1)
             
-            print(f"Mesh: {nNx}x{nNy} nodes = {nNodes} total, {nElem} elements")
+            # CRITICAL: Ensure arrays don't exceed what Fortran expects
+            # The error in Sensitivity.f90 suggests parameter arrays are mismatched
             
-            # Build node coordinate arrays
+            print(f"CONSERVATIVE MESH: {nNx}x{nNy} = {nNodes} nodes, {nElem} elements")
+            
+            # Validate mesh dimensions are reasonable
+            if nNodes > 1000 or nElem > 500:
+                raise Exception(f"Mesh too large: {nNodes} nodes, {nElem} elements. Reducing for safety.")
+            
+            # Build node coordinates
             nodeX = np.zeros(nNodes, dtype=np.float64)
             nodeY = np.zeros(nNodes, dtype=np.float64)
             
             for j in range(nNy):
                 for i in range(nNx):
                     idx = j * nNx + i
-                    nodeX[idx] = x_positions[i]
-                    nodeY[idx] = y_positions[j]
+                    nodeX[idx] = mesh_x_coords[i]
+                    nodeY[idx] = mesh_y_coords[j]
             
-            # Create conductivity model (homogeneous for testing)
+            # Homogeneous conductivity model (conservative)
             cond = np.full(nElem, 0.01, dtype=np.float64)  # 100 ohm-m
             
-            # Electrode node mapping - map electrodes to surface nodes
-            nElec = len(electrodes)
-            nInf = 1  # One infinity electrode
-            elecNodeID = np.zeros(nElec + nInf, dtype=np.int32)
+            # CRITICAL FIX: Electrode mapping with bounds checking
+            nInf = 1
+            elecNodeID = np.zeros(num_electrodes + nInf, dtype=np.int32)
             
-            # Map each electrode to closest surface node (y=0)
+            # Map electrodes to surface nodes (y=0) with bounds checking
             for i, elec in enumerate(electrodes):
-                closest_x_idx = 0
+                # Find closest surface node
+                closest_idx = 0
                 min_dist = float('inf')
-                for j, x_pos in enumerate(x_positions):
-                    dist = abs(x_pos - elec['x'])
+                
+                for j in range(nNx):
+                    dist = abs(mesh_x_coords[j] - elec['x'])
                     if dist < min_dist:
                         min_dist = dist
-                        closest_x_idx = j
+                        closest_idx = j
                 
-                elecNodeID[i] = closest_x_idx + 1  # 1-based, surface row
+                # Surface nodes are in the first row (j=0)
+                surface_node_id = closest_idx + 1  # 1-based indexing
+                elecNodeID[i] = surface_node_id
+                
+                print(f"Electrode {i} at x={elec['x']:.3f} mapped to surface node {surface_node_id}")
             
-            elecNodeID[-1] = 1  # Infinity electrode (dummy)
+            elecNodeID[-1] = 1  # Infinity electrode
             
-            # Parameter windows (full mesh for simplicity)
-            nParamX, nParamY = 1, 1
+            # Build ABMN commands with bounds checking
+            stingCMD = []
+            electrode_pos_map = {}
+            
+            # Create position-to-index mapping
+            for i, elec in enumerate(electrodes):
+                key = f"{elec['x']:.1f}_{elec['y']:.1f}"
+                electrode_pos_map[key] = i + 1  # 1-based
+            
+            for i, meas in enumerate(measurements):
+                # Map ABMN to electrode indices
+                a_key = f"{meas['electrode_a']['x']:.1f}_{meas['electrode_a']['y']:.1f}"
+                b_key = f"{meas['electrode_b']['x']:.1f}_{meas['electrode_b']['y']:.1f}"
+                m_key = f"{meas['electrode_m']['x']:.1f}_{meas['electrode_m']['y']:.1f}"
+                n_key = f"{meas['electrode_n']['x']:.1f}_{meas['electrode_n']['y']:.1f}"
+                
+                a_idx = electrode_pos_map.get(a_key, 1)
+                b_idx = electrode_pos_map.get(b_key, 1)
+                m_idx = electrode_pos_map.get(m_key, 1)
+                n_idx = electrode_pos_map.get(n_key, 1)
+                
+                # Bounds check: ensure indices are within electrode range
+                for idx, name in [(a_idx, 'A'), (b_idx, 'B'), (m_idx, 'M'), (n_idx, 'N')]:
+                    if idx < 1 or idx > num_electrodes:
+                        print(f"WARNING: {name} electrode index {idx} out of bounds [1, {num_electrodes}]")
+                
+                stingCMD.extend([a_idx, b_idx, m_idx, n_idx])
+            
+            stingCMD = np.array(stingCMD, dtype=np.int32)
+            
+            # CONSERVATIVE parameter windows to avoid array bounds errors
+            # Use minimal parameter regions
+            nParamX, nParamY = 1, 1  # Most conservative: single parameter region
             p1 = np.array([1], dtype=np.int32)
             p2 = np.array([nNx], dtype=np.int32)
             q1 = np.array([1], dtype=np.int32)
             q2 = np.array([nNy], dtype=np.int32)
             
-            # Infinity electrode array
-            inf = np.array([nElec + nInf], dtype=np.int32)
+            inf = np.array([num_electrodes + nInf], dtype=np.int32)
             
-            print(f"Calling InitForwGlobals: nData={nData}, nElec={nElec+nInf}, nInf={nInf}")
-            print(f"Mesh size: {nNx}x{nNy}, Elements: {nElem}")
+            print(f"Parameter setup: nParamX={nParamX}, nParamY={nParamY}")
+            print(f"Array dimensions: elecNodeID={len(elecNodeID)}, stingCMD={len(stingCMD)}")
+            print(f"Calling InitForwGlobals with conservative parameters...")
             
-            # Initialize EI2D engine with corrected parameters
+            # Initialize EI2D with CONSERVATIVE parameters to avoid array bounds
             self.lib.ei2d_InitForwGlobals(
-                nData,              # NumData
-                nElec + nInf,       # NumElectrodes (including infinity)
-                nInf,               # NumInfElectrodes
-                nNx,                # NumNodeX
-                nNy,                # NumNodeY
-                forw_mod_meth,      # ForwModMeth (0=FD, 1=FE)
-                forw_solver,        # ForwSolver
-                0,                  # InvMethod
-                forw_accuracy,      # ForwAccuracy
-                forw_cg_iter,       # ForwCGIter
-                bc_type,            # BCType
-                forw_cg_resid,      # ForwCGResid
-                0.0,                # MinTxRxSep
-                0.0                 # MaxTxRxSep
+                nData,                  # NumData  
+                num_electrodes + nInf,  # NumElectrodes
+                nInf,                   # NumInfElectrodes
+                nNx,                    # NumNodeX (conservative)
+                nNy,                    # NumNodeY (conservative)
+                forw_mod_meth,          # ForwModMeth
+                forw_solver,            # ForwSolver
+                0,                      # InvMethod
+                forw_accuracy,          # ForwAccuracy
+                forw_cg_iter,           # ForwCGIter
+                bc_type,                # BCType
+                forw_cg_resid,          # ForwCGResid
+                0.0,                    # MinTxRxSep
+                0.0                     # MaxTxRxSep
             )
             
-            print("Setting parameter regions...")
-            self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
+            print("InitForwGlobals completed successfully")
             
-            # Prepare output arrays
+            # Set conservative parameter regions
+            self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
+            print("SetNumParamForward completed successfully")
+            
+            # Prepare output arrays with correct sizing
             VI = np.zeros(nData, dtype=np.float64)
             jacobian = np.zeros(nData * nParamX * nParamY, dtype=np.float64)
             
-            print(f"Calling ForwardFD with array sizes:")
-            print(f"  NodeX/Y: {len(nodeX)}, Cond: {len(cond)}")
-            print(f"  VI: {len(VI)}, StingCMD: {len(stingCMD)}")
-            print(f"  ElecNodeID: {len(elecNodeID)}")
+            print(f"Calling ForwardFD with arrays: VI={len(VI)}, jacobian={len(jacobian)}")
             
-            # Call forward modeling
+            # Call forward modeling with conservative parameters
             self.lib.ei2d_ForwardFD(
                 nodeX.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 nodeY.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -436,46 +483,51 @@ class EI2DRealDataProcessor:
                 q1.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 q2.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 inf.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                0,                  # GetJacobian (no)
-                nNodes,             # nNodes
-                nElem,              # nElem
-                nData               # nData
+                0,                      # GetJacobian (0=no, avoid sensitivity array bounds)
+                nNodes,                 # nNodes
+                nElem,                  # nElem
+                nData                   # nData
             )
             
-            print("Forward modeling completed successfully!")
+            print("ForwardFD completed successfully!")
             
-            # Calculate apparent resistivities
+            # Convert to apparent resistivities
             apparent_resistivities = []
             geometric_factors = []
             
             for i, vi in enumerate(VI):
-                meas = measurements[i]
-                a_pos = np.array([meas["electrode_a"]["x"], meas["electrode_a"]["y"]])
-                b_pos = np.array([meas["electrode_b"]["x"], meas["electrode_b"]["y"]])
-                m_pos = np.array([meas["electrode_m"]["x"], meas["electrode_m"]["y"]])
-                n_pos = np.array([meas["electrode_n"]["x"], meas["electrode_n"]["y"]])
-                
-                g_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
-                geometric_factors.append(g_factor)
-                
-                if abs(vi) > 1e-12:
-                    app_res = g_factor * vi
-                    apparent_resistivities.append(app_res)
+                if i < len(measurements):
+                    meas = measurements[i]
+                    a_pos = np.array([meas["electrode_a"]["x"], meas["electrode_a"]["y"]])
+                    b_pos = np.array([meas["electrode_b"]["x"], meas["electrode_b"]["y"]])
+                    m_pos = np.array([meas["electrode_m"]["x"], meas["electrode_m"]["y"]])
+                    n_pos = np.array([meas["electrode_n"]["x"], meas["electrode_n"]["y"]])
+                    
+                    g_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
+                    geometric_factors.append(g_factor)
+                    
+                    if abs(vi) > 1e-12:
+                        app_res = g_factor * vi
+                        apparent_resistivities.append(app_res)
+                    else:
+                        apparent_resistivities.append(0.0)
                 else:
                     apparent_resistivities.append(0.0)
+                    geometric_factors.append(1.0)
             
             return {
                 "success": True,
-                "method": "real_ei2d_forward_fd",
+                "method": "real_ei2d_forward_fd_fixed",
                 "parameters": {
                     "forward_method": "FE" if forw_mod_meth == 1 else "FD",
                     "solver": "CG" if forw_solver == 1 else "Cholesky",
                     "boundary_condition": bc_type,
                     "mesh_nodes_x": nNx,
                     "mesh_nodes_y": nNy,
-                    "electrodes": nElec,
+                    "electrodes": num_electrodes,
                     "measurements": nData,
-                    "elements": nElem
+                    "elements": nElem,
+                    "electrode_spacing": electrode_spacing
                 },
                 "results": {
                     "vi_data": [float(vi) if np.isfinite(vi) else 0.0 for vi in VI],
@@ -488,9 +540,12 @@ class EI2DRealDataProcessor:
                 "mesh": {
                     "node_x": [float(x) for x in nodeX],
                     "node_y": [float(y) for y in nodeY],
-                    "conductivity": [float(c) for c in cond]
+                    "conductivity": [float(c) for c in cond],
+                    "mesh_x_coords": mesh_x_coords,
+                    "mesh_y_coords": mesh_y_coords
                 },
-                "message": f"Real EI2D forward modeling completed successfully. {nData} V/I values computed using {'FE' if forw_mod_meth == 1 else 'FD'} method."
+                "message": f"FIXED: Real EI2D forward modeling completed with conservative mesh sizing. {nData} V/I values computed using {'FE' if forw_mod_meth == 1 else 'FD'} method.",
+                "fix_applied": "Conservative mesh sizing and bounds checking to avoid Fortran array bounds errors"
             }
             
         except Exception as e:
@@ -502,7 +557,8 @@ class EI2DRealDataProcessor:
             return {
                 "success": False,
                 "error": error_msg,
-                "message": f"C-ABI integration failed, falling back to enhanced mock: {str(e)}"
+                "message": f"C-ABI integration failed with array bounds fix attempt: {str(e)}",
+                "fix_attempted": "Conservative mesh sizing and bounds checking"
             }
     
     def _calculate_geometric_factor(self, a_pos, b_pos, m_pos, n_pos):
