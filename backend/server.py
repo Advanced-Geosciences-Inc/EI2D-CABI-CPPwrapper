@@ -115,6 +115,7 @@ async def upload_mod_file(file: UploadFile = File(...)):
     result = await ei_service.process_mod_file(mod_content)
     result["filename"] = file.filename
     return result
+@api_router.post("/earthimager/upload-stg")
 async def upload_stg_file(file: UploadFile = File(...)):
     """Upload and process STG survey file"""
     if not file.filename.endswith('.stg'):
