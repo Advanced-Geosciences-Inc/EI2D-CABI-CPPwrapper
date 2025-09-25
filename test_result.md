@@ -101,3 +101,86 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: Test EarthImager 2D backend inversion functionality using toy-14-dd reference data to verify OUT file generation with proper iteration data, V/I measurements, resistivity matrices, and sensitivity matrices.
+
+backend:
+  - task: "STG File Processing"
+    implemented: true
+    working: true
+    file: "earthimager_wrapper.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "STG parser successfully extracts electrode positions and measurements from AGI format"
+
+  - task: "INI File Processing"
+    implemented: true
+    working: true
+    file: "earthimager_wrapper.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "INI parser correctly extracts forward modeling and inversion parameters"
+
+  - task: "Forward Modeling C-ABI Integration"
+    implemented: true
+    working: false
+    file: "earthimager_wrapper.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "C-ABI calls working but need to verify correct data flow and array sizing"
+
+  - task: "Inversion Workflow with OUT File Generation"
+    implemented: false
+    working: false
+    file: "earthimager_wrapper.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Need to implement actual Fortran inversion calls and generate proper OUT format matching reference toy-14-dd data"
+
+frontend:
+  - task: "File Upload Interface"
+    implemented: true
+    working: true
+    file: "App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "File upload UI handles STG and INI files correctly"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Inversion Workflow with OUT File Generation"
+    - "Backend Integration with toy-14-dd Reference Data"
+  stuck_tasks:
+    - "Forward Modeling C-ABI Integration"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Setting up backend testing for inversion workflow using toy-14-dd reference data. Need to verify OUT file format matches expected structure with iteration data, resistivity matrices, and sensitivity data."
