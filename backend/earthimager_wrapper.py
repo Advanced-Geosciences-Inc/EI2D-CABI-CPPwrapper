@@ -278,101 +278,132 @@ class EI2DRealDataProcessor:
     def _run_real_forward_modeling(self, electrodes: List, measurements: List, 
                                  forw_mod_meth: int, forw_solver: int, bc_type: int,
                                  forw_accuracy: int, forw_cg_iter: int, forw_cg_resid: float) -> Dict[str, Any]:
-        """Run actual EI2D forward modeling using C-ABI"""
+        """Run actual EI2D forward modeling using C-ABI with proper array sizing"""
         
         try:
-            # Build mesh from electrodes (simplified for this example)
-            x_coords = sorted([e['x'] for e in electrodes])
-            y_coords = [0.0]  # Surface level
+            print(f"Starting real EI2D forward modeling with {len(electrodes)} electrodes, {len(measurements)} measurements")
             
-            # Extend mesh in depth (simple approach)
-            max_x = max(x_coords)
-            spacing = x_coords[1] - x_coords[0] if len(x_coords) > 1 else 1.0
+            # Extract electrode positions and survey data carefully
+            electrode_positions = {}
+            for i, elec in enumerate(electrodes):
+                electrode_positions[elec['key']] = i + 1  # 1-based indexing
             
-            # Create depth layers
-            for i in range(1, 6):  # 5 depth levels
-                y_coords.append(i * spacing * 0.5)
+            # Build ABMN survey configuration
+            nData = len(measurements)
+            stingCMD = []
             
-            nNx = len(x_coords)
-            nNy = len(y_coords)
+            for meas in measurements:
+                # Map electrode positions to indices
+                a_key = f"{meas['electrode_a']['x']:.1f}_{meas['electrode_a']['y']:.1f}"
+                b_key = f"{meas['electrode_b']['x']:.1f}_{meas['electrode_b']['y']:.1f}"
+                m_key = f"{meas['electrode_m']['x']:.1f}_{meas['electrode_m']['y']:.1f}"
+                n_key = f"{meas['electrode_n']['x']:.1f}_{meas['electrode_n']['y']:.1f}"
+                
+                a_idx = electrode_positions.get(a_key, 1)
+                b_idx = electrode_positions.get(b_key, 1)
+                m_idx = electrode_positions.get(m_key, 1)
+                n_idx = electrode_positions.get(n_key, 1)
+                
+                stingCMD.extend([a_idx, b_idx, m_idx, n_idx])
+            
+            stingCMD = np.array(stingCMD, dtype=np.int32)
+            
+            # Create a simplified mesh for testing
+            # Use electrode positions to define surface nodes
+            x_positions = sorted([elec['x'] for elec in electrodes])
+            y_positions = [0.0]  # Surface
+            
+            # Add some depth layers for basic 2D mesh
+            max_x = max(x_positions)
+            spacing = 1.0
+            if len(x_positions) > 1:
+                spacing = x_positions[1] - x_positions[0]
+            
+            # Simple depth progression
+            for i in range(1, 6):
+                y_positions.append(i * spacing * 0.5)
+            
+            nNx = len(x_positions)
+            nNy = len(y_positions)
             nNodes = nNx * nNy
-            nElem = (nNx - 1) * (nNy - 1)
+            nElem = max(1, (nNx - 1) * (nNy - 1))  # Ensure at least 1 element
             
-            # Build node arrays
+            print(f"Mesh: {nNx}x{nNy} nodes = {nNodes} total, {nElem} elements")
+            
+            # Build node coordinate arrays
             nodeX = np.zeros(nNodes, dtype=np.float64)
             nodeY = np.zeros(nNodes, dtype=np.float64)
             
             for j in range(nNy):
                 for i in range(nNx):
                     idx = j * nNx + i
-                    nodeX[idx] = x_coords[i]
-                    nodeY[idx] = y_coords[j]
+                    nodeX[idx] = x_positions[i]
+                    nodeY[idx] = y_positions[j]
             
-            # Create conductivity model (homogeneous for now)
-            cond = np.full(nElem, 0.01, dtype=np.float64)  # 100 ohm-m background
+            # Create conductivity model (homogeneous for testing)
+            cond = np.full(nElem, 0.01, dtype=np.float64)  # 100 ohm-m
             
-            # Build electrode mapping
+            # Electrode node mapping - map electrodes to surface nodes
             nElec = len(electrodes)
-            elecNodeID = np.arange(1, nElec + 1, dtype=np.int32)
+            nInf = 1  # One infinity electrode
+            elecNodeID = np.zeros(nElec + nInf, dtype=np.int32)
             
-            # Convert measurements to ABMN format
-            nData = len(measurements)
-            stingCMD = np.zeros(nData * 4, dtype=np.int32)
-            
-            for i, meas in enumerate(measurements):
-                # Map electrode positions to indices more carefully
-                # Find the closest electrode for each position
-                def find_electrode_index(x_pos):
-                    # Find electrode index by position (1-based indexing for EI2D)
-                    min_dist = float('inf')
-                    best_idx = 1
-                    for idx, elec in enumerate(electrodes):
-                        dist = abs(elec['x'] - x_pos)
-                        if dist < min_dist:
-                            min_dist = dist
-                            best_idx = idx + 1  # 1-based
-                    return min(best_idx, nElec)  # Clamp to valid range
+            # Map each electrode to closest surface node (y=0)
+            for i, elec in enumerate(electrodes):
+                closest_x_idx = 0
+                min_dist = float('inf')
+                for j, x_pos in enumerate(x_positions):
+                    dist = abs(x_pos - elec['x'])
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest_x_idx = j
                 
-                a_idx = find_electrode_index(meas["electrode_a"]["x"])
-                b_idx = find_electrode_index(meas["electrode_b"]["x"])
-                m_idx = find_electrode_index(meas["electrode_m"]["x"])
-                n_idx = find_electrode_index(meas["electrode_n"]["x"])
-                
-                stingCMD[i*4:i*4+4] = [a_idx, b_idx, m_idx, n_idx]
+                elecNodeID[i] = closest_x_idx + 1  # 1-based, surface row
             
-            # Parameter windows
+            elecNodeID[-1] = 1  # Infinity electrode (dummy)
+            
+            # Parameter windows (full mesh for simplicity)
             nParamX, nParamY = 1, 1
             p1 = np.array([1], dtype=np.int32)
             p2 = np.array([nNx], dtype=np.int32)
             q1 = np.array([1], dtype=np.int32)
             q2 = np.array([nNy], dtype=np.int32)
             
-            # Infinity electrode
-            inf = np.array([nElec + 1], dtype=np.int32)
+            # Infinity electrode array
+            inf = np.array([nElec + nInf], dtype=np.int32)
             
-            # Initialize EI2D engine
+            print(f"Calling InitForwGlobals: nData={nData}, nElec={nElec+nInf}, nInf={nInf}")
+            print(f"Mesh size: {nNx}x{nNy}, Elements: {nElem}")
+            
+            # Initialize EI2D engine with corrected parameters
             self.lib.ei2d_InitForwGlobals(
-                nData,         # NumData
-                nElec + 1,     # NumElectrodes (including infinity)
-                1,             # NumInfElectrodes
-                nNx,           # NumNodeX
-                nNy,           # NumNodeY
-                forw_mod_meth, # ForwModMeth
-                forw_solver,   # ForwSolver
-                0,             # InvMethod
-                forw_accuracy, # ForwAccuracy
-                forw_cg_iter,  # ForwCGIter
-                bc_type,       # BCType
-                forw_cg_resid, # ForwCGResid
-                0.0,           # MinTxRxSep
-                0.0            # MaxTxRxSep
+                nData,              # NumData
+                nElec + nInf,       # NumElectrodes (including infinity)
+                nInf,               # NumInfElectrodes
+                nNx,                # NumNodeX
+                nNy,                # NumNodeY
+                forw_mod_meth,      # ForwModMeth (0=FD, 1=FE)
+                forw_solver,        # ForwSolver
+                0,                  # InvMethod
+                forw_accuracy,      # ForwAccuracy
+                forw_cg_iter,       # ForwCGIter
+                bc_type,            # BCType
+                forw_cg_resid,      # ForwCGResid
+                0.0,                # MinTxRxSep
+                0.0                 # MaxTxRxSep
             )
             
+            print("Setting parameter regions...")
             self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
             
             # Prepare output arrays
             VI = np.zeros(nData, dtype=np.float64)
             jacobian = np.zeros(nData * nParamX * nParamY, dtype=np.float64)
+            
+            print(f"Calling ForwardFD with array sizes:")
+            print(f"  NodeX/Y: {len(nodeX)}, Cond: {len(cond)}")
+            print(f"  VI: {len(VI)}, StingCMD: {len(stingCMD)}")
+            print(f"  ElecNodeID: {len(elecNodeID)}")
             
             # Call forward modeling
             self.lib.ei2d_ForwardFD(
@@ -388,31 +419,30 @@ class EI2DRealDataProcessor:
                 q1.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 q2.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 inf.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                0,             # GetJacobian
-                nNodes,        # nNodes
-                nElem,         # nElem
-                nData          # nData
+                0,                  # GetJacobian (no)
+                nNodes,             # nNodes
+                nElem,              # nElem
+                nData               # nData
             )
             
-            # Calculate apparent resistivities from V/I
+            print("Forward modeling completed successfully!")
+            
+            # Calculate apparent resistivities
             apparent_resistivities = []
             geometric_factors = []
             
             for i, vi in enumerate(VI):
-                # Calculate geometric factor for each measurement
                 meas = measurements[i]
                 a_pos = np.array([meas["electrode_a"]["x"], meas["electrode_a"]["y"]])
                 b_pos = np.array([meas["electrode_b"]["x"], meas["electrode_b"]["y"]])
                 m_pos = np.array([meas["electrode_m"]["x"], meas["electrode_m"]["y"]])
                 n_pos = np.array([meas["electrode_n"]["x"], meas["electrode_n"]["y"]])
                 
-                # Standard geometric factor calculation
                 g_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
                 geometric_factors.append(g_factor)
                 
-                # Apparent resistivity = geometric_factor * (V/I)
-                if abs(vi) > 1e-12:  # Avoid division by zero
-                    app_res = g_factor * vi  # vi is already V/I from EI2D
+                if abs(vi) > 1e-12:
+                    app_res = g_factor * vi
                     apparent_resistivities.append(app_res)
                 else:
                     apparent_resistivities.append(0.0)
@@ -426,8 +456,9 @@ class EI2DRealDataProcessor:
                     "boundary_condition": bc_type,
                     "mesh_nodes_x": nNx,
                     "mesh_nodes_y": nNy,
-                    "electrodes": len(electrodes),
-                    "measurements": nData
+                    "electrodes": nElec,
+                    "measurements": nData,
+                    "elements": nElem
                 },
                 "results": {
                     "vi_data": [float(vi) if np.isfinite(vi) else 0.0 for vi in VI],
@@ -442,14 +473,19 @@ class EI2DRealDataProcessor:
                     "node_y": [float(y) for y in nodeY],
                     "conductivity": [float(c) for c in cond]
                 },
-                "message": f"Real EI2D forward modeling completed. {nData} V/I values computed using {forw_mod_meth} method."
+                "message": f"Real EI2D forward modeling completed successfully. {nData} V/I values computed using {'FE' if forw_mod_meth == 1 else 'FD'} method."
             }
             
         except Exception as e:
+            error_msg = f"Real EI2D forward modeling failed: {str(e)}"
+            print(f"C-ABI Error: {error_msg}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            
             return {
                 "success": False,
-                "error": str(e),
-                "message": f"Real EI2D forward modeling failed: {str(e)}"
+                "error": error_msg,
+                "message": f"C-ABI integration failed, falling back to enhanced mock: {str(e)}"
             }
     
     def _calculate_geometric_factor(self, a_pos, b_pos, m_pos, n_pos):
