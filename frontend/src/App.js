@@ -156,6 +156,36 @@ const EarthImagerInterface = () => {
     setLoading(false);
   };
 
+  const generatePlots = async () => {
+    if (!results?.out_file?.content) {
+      setStatus('No OUT file available for plot generation');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('out_content', results.out_file.content);
+      formData.append('colormap', 'jet');
+      formData.append('show_contours', 'false');
+      
+      const response = await axios.post(`${API}/earthimager/generate-plots`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults({
+        ...results,
+        plots: response.data.plots,
+        plot_summary: response.data.summary,
+        visualization_type: "ei2d_plots"
+      });
+      setStatus(`Generated ${Object.keys(response.data.plots || {}).length} plot categories successfully`);
+    } catch (error) {
+      setStatus(`Plot generation error: ${error.response?.data?.detail || error.message}`);
+    }
+    setLoading(false);
+  };
+
   const downloadOutFile = async () => {
     if (!results?.out_file?.content) {
       setStatus('No OUT file available for download');
