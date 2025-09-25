@@ -320,11 +320,23 @@ class EI2DRealDataProcessor:
             stingCMD = np.zeros(nData * 4, dtype=np.int32)
             
             for i, meas in enumerate(measurements):
-                # Map electrode positions to indices (simplified)
-                a_idx = int(meas["electrode_a"]["x"] / spacing) + 1
-                b_idx = int(meas["electrode_b"]["x"] / spacing) + 1  
-                m_idx = int(meas["electrode_m"]["x"] / spacing) + 1
-                n_idx = int(meas["electrode_n"]["x"] / spacing) + 1
+                # Map electrode positions to indices more carefully
+                # Find the closest electrode for each position
+                def find_electrode_index(x_pos):
+                    # Find electrode index by position (1-based indexing for EI2D)
+                    min_dist = float('inf')
+                    best_idx = 1
+                    for idx, elec in enumerate(electrodes):
+                        dist = abs(elec['x'] - x_pos)
+                        if dist < min_dist:
+                            min_dist = dist
+                            best_idx = idx + 1  # 1-based
+                    return min(best_idx, nElec)  # Clamp to valid range
+                
+                a_idx = find_electrode_index(meas["electrode_a"]["x"])
+                b_idx = find_electrode_index(meas["electrode_b"]["x"])
+                m_idx = find_electrode_index(meas["electrode_m"]["x"])
+                n_idx = find_electrode_index(meas["electrode_n"]["x"])
                 
                 stingCMD[i*4:i*4+4] = [a_idx, b_idx, m_idx, n_idx]
             
