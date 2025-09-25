@@ -395,7 +395,12 @@ const EarthImagerInterface = () => {
         )}
 
         {activeTab === 'results' && (
-          <ResultsTab results={results} onDownloadOutFile={downloadOutFile} />
+          <ResultsTab 
+            results={results} 
+            onDownloadOutFile={downloadOutFile}
+            onGeneratePlots={generatePlots}
+            loading={loading}
+          />
         )}
       </div>
     </div>
