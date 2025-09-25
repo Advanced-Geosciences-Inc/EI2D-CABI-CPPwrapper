@@ -288,13 +288,20 @@ const EarthImagerInterface = () => {
     formData.append('file', file);
     
     try {
+      // Read the original file content
+      const fileContent = await file.text();
+      
       const response = await axios.post(`${API}/earthimager/upload-${fileType}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       setUploadedFiles(prev => ({
         ...prev,
-        [fileType]: { name: file.name, data: response.data }
+        [fileType]: { 
+          name: file.name, 
+          data: response.data,
+          originalContent: fileContent  // Store original file content
+        }
       }));
       
       setStatus(`${fileType.toUpperCase()} file processed successfully`);
