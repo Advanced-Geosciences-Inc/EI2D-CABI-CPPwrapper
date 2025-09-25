@@ -178,6 +178,30 @@ class EarthImagerService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"STG parsing error: {str(e)}")
     
+    async def process_stg_file(self, stg_content: str) -> Dict[str, Any]:
+        """Process uploaded STG file - Real AGI format"""
+        try:
+            parsed_stg = STGParser.parse_stg(stg_content)
+            
+            return {
+                "success": True,
+                "format": parsed_stg.get("format"),
+                "header_info": parsed_stg.get("header_info", {}),
+                "num_electrodes": parsed_stg["num_electrodes"],
+                "num_measurements": parsed_stg["num_measurements"],
+                "electrode_spacing": parsed_stg.get("electrode_spacing", 1.0),
+                "measurement_preview": parsed_stg["measurements"][:5],  # First 5 measurements
+                "voltage_range": parsed_stg.get("voltage_range", {}),
+                "resistivity_range": parsed_stg.get("resistivity_range", {}),
+                "electrodes": parsed_stg.get("electrodes", []),
+                "parsed_data": parsed_stg
+            }
+            
+        except Exception as e:
+            print(f"STG parsing error: {str(e)}")
+            print(f"STG content preview: {stg_content[:500]}")  # Debug info
+            raise HTTPException(status_code=400, detail=f"STG parsing error: {str(e)}")
+    
     async def process_mdl_file(self, mdl_content: str) -> Dict[str, Any]:
         """Process uploaded MDL file"""
         try:
