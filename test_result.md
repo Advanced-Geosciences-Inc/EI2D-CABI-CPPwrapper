@@ -139,13 +139,16 @@ backend:
     implemented: true
     working: false
     file: "earthimager_wrapper.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "C-ABI calls working but need to verify correct data flow and array sizing"
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL: C-ABI integration failing with Fortran runtime error 'Index 540 of dimension 1 of array n1 above upper bound of 539' in Sensitivity.f90 line 350. This causes backend to hang completely on any endpoint using EI2D library. Array bounds issue in mesh generation or parameter mapping."
 
   - task: "Inversion Workflow with OUT File Generation"
     implemented: false
