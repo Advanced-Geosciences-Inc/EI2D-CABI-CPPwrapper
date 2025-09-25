@@ -690,7 +690,7 @@ const ResultsTab = ({ results }) => {
                 </div>
                 <div>
                   <span className="text-blue-700 font-medium">Conductivity:</span>
-                  <div className="text-blue-900">{results.parameters?.conductivity?.toFixed(4)} S/m</div>
+                  <div className="text-blue-900">{typeof results.parameters?.conductivity === 'number' ? results.parameters.conductivity.toFixed(4) : results.parameters?.conductivity} S/m</div>
                 </div>
               </div>
             </div>
