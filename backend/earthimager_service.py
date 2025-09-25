@@ -34,22 +34,37 @@ class EarthImagerService:
                                  resistivity: float = 100.0) -> Dict[str, Any]:
         """Run forward modeling with simple parameters"""
         
-        if not self.wrapper:
-            raise HTTPException(status_code=500, detail="EI2D engine not available")
-        
         try:
-            # Convert resistivity to conductivity
+            # For now, create a mock result to test the interface
+            # TODO: Replace with actual EI2D wrapper call once debugged
+            
+            # Generate mock data that mimics EI2D output
+            import random
+            import math
+            
+            n_data = (n_electrodes - 3) * 2  # Dipole-dipole for n=1,2
+            
+            # Mock V/I data (typical geophysical values)
+            vi_data = []
+            for i in range(n_data):
+                # Simulate realistic V/I values based on resistivity
+                base_vi = 1.0 / (resistivity * 0.01)  # Basic relationship
+                noise = random.uniform(0.8, 1.2)  # Add some variation
+                vi_data.append(base_vi * noise)
+            
+            # Mock ABMN survey configuration
+            survey_config = []
+            for n in range(1, 3):  # n=1,2
+                for i in range(1, n_electrodes - (2 + n) + 1):
+                    A = i
+                    B = i + 1
+                    M = i + 1 + n
+                    N = i + 2 + n
+                    survey_config.append([A, B, M, N])
+            
+            # Conductivity
             conductivity = 1.0 / resistivity if resistivity > 0 else 0.01
             
-            result = self.wrapper.forward_fd_simple(
-                n_elec=n_electrodes, 
-                spacing=electrode_spacing
-            )
-            
-            if not result.get("success"):
-                raise HTTPException(status_code=500, detail=result.get("error", "Forward modeling failed"))
-            
-            # Format results for web display
             formatted_result = {
                 "success": True,
                 "parameters": {
@@ -59,17 +74,22 @@ class EarthImagerService:
                     "conductivity": conductivity
                 },
                 "results": {
-                    "num_data_points": result["nData"],
-                    "vi_data": result["VI"][:10],  # First 10 for preview
-                    "total_vi_count": len(result["VI"]),
-                    "survey_config": result["stingCMD"][:5],  # First 5 ABMN configs
+                    "num_data_points": n_data,
+                    "vi_data": vi_data[:10],  # First 10 for preview
+                    "total_vi_count": len(vi_data),
+                    "survey_config": survey_config[:5],  # First 5 ABMN configs
                     "mesh_info": {
-                        "nodes_x": len(set(result["nodeX"])),
-                        "nodes_y": len(set(result["nodeY"])),
-                        "total_nodes": len(result["nodeX"])
+                        "nodes_x": n_electrodes,
+                        "nodes_y": 6,
+                        "total_nodes": n_electrodes * 6
                     }
                 },
-                "full_data": result  # Include all data for download
+                "full_data": {
+                    "VI": vi_data,
+                    "survey_config": survey_config,
+                    "message": f"Mock forward modeling completed successfully. {n_data} data points computed.",
+                    "note": "This is mock data for interface testing. Real EI2D engine integration pending."
+                }
             }
             
             return formatted_result
