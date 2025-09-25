@@ -90,7 +90,31 @@ async def upload_ini_file(file: UploadFile = File(...)):
     result["filename"] = file.filename
     return result
 
-@api_router.post("/earthimager/upload-stg")
+@api_router.post("/earthimager/upload-mdl")
+async def upload_mdl_file(file: UploadFile = File(...)):
+    """Upload and process MDL model file"""
+    if not file.filename.endswith('.mdl'):
+        raise HTTPException(status_code=400, detail="File must be an MDL file")
+    
+    content = await file.read()
+    mdl_content = content.decode('utf-8')
+    
+    result = await ei_service.process_mdl_file(mdl_content)
+    result["filename"] = file.filename
+    return result
+
+@api_router.post("/earthimager/upload-mod")
+async def upload_mod_file(file: UploadFile = File(...)):
+    """Upload and process MOD resistivity model file"""
+    if not file.filename.endswith('.mod'):
+        raise HTTPException(status_code=400, detail="File must be a MOD file")
+    
+    content = await file.read()
+    mod_content = content.decode('utf-8')
+    
+    result = await ei_service.process_mod_file(mod_content)
+    result["filename"] = file.filename
+    return result
 async def upload_stg_file(file: UploadFile = File(...)):
     """Upload and process STG survey file"""
     if not file.filename.endswith('.stg'):
