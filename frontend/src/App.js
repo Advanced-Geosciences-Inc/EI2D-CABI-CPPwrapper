@@ -740,48 +740,117 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
 };
 
 // Results Tab Component  
-const ResultsTab = ({ results }) => {
+const ResultsTab = ({ results, onDownloadOutFile }) => {
   if (!results) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <div className="text-center text-gray-500">
           <BarChart3 className="mx-auto h-12 w-12 mb-4" />
           <h3 className="text-lg font-medium mb-2">No Results Yet</h3>
-          <p>Run a forward model to see results here.</p>
+          <p>Run forward modeling or inversion to see results here.</p>
         </div>
       </div>
     );
   }
 
+  const isInversionResult = results.workflow === "complete_ei2d_inversion";
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Forward Modeling Results</h2>
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {isInversionResult ? "Inversion Results" : "Forward Modeling Results"}
+          </h2>
+          
+          {isInversionResult && results.out_file && (
+            <button
+              onClick={onDownloadOutFile}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download OUT File</span>
+            </button>
+          )}
+        </div>
         
         {results.success ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Parameters Summary */}
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <h3 className="font-medium text-blue-900 mb-2">Model Parameters</h3>
+              <h3 className="font-medium text-blue-900 mb-2">
+                {isInversionResult ? "Inversion Parameters" : "Model Parameters"}
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-blue-700 font-medium">Electrodes:</span>
-                  <div className="text-blue-900">{results.parameters?.n_electrodes}</div>
+                  <div className="text-blue-900">{results.parameters?.n_electrodes || results.parameters?.electrodes}</div>
                 </div>
                 <div>
                   <span className="text-blue-700 font-medium">Spacing:</span>
                   <div className="text-blue-900">{results.parameters?.electrode_spacing} m</div>
                 </div>
                 <div>
-                  <span className="text-blue-700 font-medium">Resistivity:</span>
-                  <div className="text-blue-900">{results.parameters?.resistivity} Ω·m</div>
+                  <span className="text-blue-700 font-medium">Method:</span>
+                  <div className="text-blue-900">{results.parameters?.forward_method}</div>
                 </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Conductivity:</span>
-                  <div className="text-blue-900">{typeof results.parameters?.conductivity === 'number' ? results.parameters.conductivity.toFixed(4) : results.parameters?.conductivity} S/m</div>
-                </div>
+                {isInversionResult && (
+                  <>
+                    <div>
+                      <span className="text-blue-700 font-medium">Iterations:</span>
+                      <div className="text-blue-900">{results.parameters?.final_iteration}</div>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Final RMS:</span>
+                      <div className="text-blue-900">{results.parameters?.final_rms?.toFixed(3)}%</div>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Converged:</span>
+                      <div className={`font-medium ${results.parameters?.convergence ? 'text-green-900' : 'text-red-900'}`}>
+                        {results.parameters?.convergence ? 'Yes' : 'No'}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {!isInversionResult && (
+                  <>
+                    <div>
+                      <span className="text-blue-700 font-medium">Resistivity:</span>
+                      <div className="text-blue-900">{results.parameters?.resistivity} Ω·m</div>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Conductivity:</span>
+                      <div className="text-blue-900">{typeof results.parameters?.conductivity === 'number' ? results.parameters.conductivity.toFixed(4) : results.parameters?.conductivity} S/m</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Mesh Information */}
+            {(isInversionResult && results.mesh) && (
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                <h3 className="font-medium text-gray-900 mb-2">Inversion Mesh</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-700 font-medium">Total Nodes:</span>
+                    <div className="text-gray-900">{results.mesh.total_nodes}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-700 font-medium">Nodes X:</span>
+                    <div className="text-gray-900">{results.mesh.nodes_x}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-700 font-medium">Nodes Y:</span>
+                    <div className="text-gray-900">{results.mesh.nodes_y}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-700 font-medium">Parameters:</span>
+                    <div className="text-gray-900">{results.mesh.parameters}</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Results Summary */}
             <div className="bg-green-50 border border-green-200 rounded-md p-4">
@@ -789,27 +858,56 @@ const ResultsTab = ({ results }) => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <span className="text-green-700 font-medium">Data Points:</span>
-                  <div className="text-green-900">{results.results?.num_data_points}</div>
+                  <div className="text-green-900">{results.results?.num_data_points || results.parameters?.measurements}</div>
                 </div>
-                <div>
-                  <span className="text-green-700 font-medium">Mesh Nodes X:</span>
-                  <div className="text-green-900">{results.results?.mesh_info?.nodes_x}</div>
-                </div>
-                <div>
-                  <span className="text-green-700 font-medium">Mesh Nodes Y:</span>
-                  <div className="text-green-900">{results.results?.mesh_info?.nodes_y}</div>
-                </div>
+                {!isInversionResult && (
+                  <>
+                    <div>
+                      <span className="text-green-700 font-medium">Mesh Nodes X:</span>
+                      <div className="text-green-900">{results.results?.mesh_info?.nodes_x}</div>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">Mesh Nodes Y:</span>
+                      <div className="text-green-900">{results.results?.mesh_info?.nodes_y}</div>
+                    </div>
+                  </>
+                )}
+                {isInversionResult && (
+                  <>
+                    <div>
+                      <span className="text-green-700 font-medium">Resistivity Model:</span>
+                      <div className="text-green-900">{results.results?.resistivity_model?.length} parameters</div>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">OUT File Size:</span>
+                      <div className="text-green-900">{results.out_file?.size} bytes</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* VI Data Preview */}
-            {results.results?.vi_data && (
+            {/* V/I Data or Resistivity Model Preview */}
+            {!isInversionResult && results.results?.vi_data && (
               <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                 <h3 className="font-medium text-gray-900 mb-2">V/I Data Preview (First 10 values)</h3>
                 <div className="grid grid-cols-5 gap-2 text-sm font-mono">
                   {results.results.vi_data.slice(0, 10).map((vi, idx) => (
+                    <div key={idx} className="bg-white px-2 py-1 rounded border scientific-notation">
+                      {typeof vi === 'number' ? vi.toExponential(3) : vi}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isInversionResult && results.results?.resistivity_model && (
+              <div className="bg-orange-50 border border-orange-200 rounded-md p-4">
+                <h3 className="font-medium text-orange-900 mb-2">Resistivity Model Preview (First 10 parameters)</h3>
+                <div className="grid grid-cols-5 gap-2 text-sm font-mono">
+                  {results.results.resistivity_model.slice(0, 10).map((res, idx) => (
                     <div key={idx} className="bg-white px-2 py-1 rounded border">
-                      {vi.toExponential(3)}
+                      {res.toFixed(1)} Ω·m
                     </div>
                   ))}
                 </div>
@@ -817,7 +915,7 @@ const ResultsTab = ({ results }) => {
             )}
 
             {/* Survey Configuration Preview */}
-            {results.results?.survey_config && (
+            {!isInversionResult && results.results?.survey_config && (
               <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                 <h3 className="font-medium text-gray-900 mb-2">Survey Configuration Preview (ABMN)</h3>
                 <div className="overflow-x-auto">
@@ -837,6 +935,33 @@ const ResultsTab = ({ results }) => {
                           <td className="px-3 py-2">{config[1]}</td>
                           <td className="px-3 py-2">{config[2]}</td>
                           <td className="px-3 py-2">{config[3]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Iteration History for Inversion */}
+            {isInversionResult && results.results?.iteration_history && (
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
+                <h3 className="font-medium text-purple-900 mb-2">Convergence History</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-white">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-purple-900">Iteration</th>
+                        <th className="px-3 py-2 text-left font-medium text-purple-900">RMS Error (%)</th>
+                        <th className="px-3 py-2 text-left font-medium text-purple-900">Mean Resistivity</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {results.results.iteration_history.slice(0, 5).map((iter, idx) => (
+                        <tr key={idx} className="bg-white">
+                          <td className="px-3 py-2">{iter.iteration}</td>
+                          <td className="px-3 py-2">{iter.rms_error.toFixed(3)}</td>
+                          <td className="px-3 py-2">{iter.mean_resistivity.toFixed(1)}</td>
                         </tr>
                       ))}
                     </tbody>
