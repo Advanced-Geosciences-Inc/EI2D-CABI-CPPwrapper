@@ -302,10 +302,12 @@ class EarthImagerService:
             print(f"Error: {error_msg}")
             print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=error_msg)
+    
+    async def health_check(self) -> Dict[str, Any]:
         """Check service health"""
         return {
             "service": "EarthImager 2D Web Interface",
             "status": "healthy",
-            "ei2d_engine": "available" if self.wrapper else "unavailable",
+            "ei2d_engine": "available" if self.real_processor else "unavailable",
             "version": "1.0.0"
         }
