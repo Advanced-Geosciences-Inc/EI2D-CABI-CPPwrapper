@@ -66,7 +66,7 @@ const EarthImagerInterface = () => {
           n_electrodes: uploadedFiles.stg.data.num_electrodes,
           electrode_spacing: uploadedFiles.stg.data.electrode_spacing || forwardParams.electrode_spacing,
           resistivity: forwardParams.resistivity,
-          conductivity: (1.0 / parseFloat(forwardParams.resistivity || 100)).toFixed(4),
+          conductivity: (1.0 / parseFloat(forwardParams.resistivity || 100)).toFixed(4) + "",
           forward_method: uploadedFiles.ini?.data?.parsed_data?.Forward?.ForwModMeth === "1" ? "FE" : "FD",
           survey_type: uploadedFiles.stg.data.format
         },
