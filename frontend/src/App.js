@@ -516,7 +516,7 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-4">
               <button
                 onClick={onGenerateIni}
                 className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -524,6 +524,17 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
                 <Download className="w-4 h-4" />
                 <span>Generate INI File</span>
               </button>
+              
+              {(uploadedFiles?.ini && uploadedFiles?.stg) && (
+                <button
+                  onClick={onRunInversion}
+                  disabled={loading}
+                  className="flex items-center space-x-2 px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>{loading ? 'Running Inversion...' : 'Run Full Inversion'}</span>
+                </button>
+              )}
             </div>
           </div>
         )}
