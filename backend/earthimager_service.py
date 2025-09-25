@@ -130,7 +130,33 @@ class EarthImagerService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"INI parsing error: {str(e)}")
     
-    async def process_stg_file(self, stg_content: str) -> Dict[str, Any]:
+    async def run_real_forward_modeling(self, ini_content: str, stg_content: str) -> Dict[str, Any]:
+        """Run real forward modeling using INI and STG files"""
+        
+        if not self.real_processor:
+            raise HTTPException(status_code=500, detail="EI2D real processor not available")
+        
+        try:
+            result = self.real_processor.process_ini_stg_files(ini_content, stg_content)
+            
+            if not result.get("success"):
+                raise HTTPException(status_code=500, detail=result.get("error", "Real forward modeling failed"))
+            
+            return {
+                "success": True,
+                "method": result.get("method", "unknown"),
+                "parameters": result.get("parameters", {}),
+                "results": result.get("results", {}),
+                "mesh": result.get("mesh", {}),
+                "message": result.get("message", "Forward modeling completed"),
+                "note": result.get("note", "")
+            }
+            
+        except Exception as e:
+            error_msg = f"Real forward modeling error: {str(e)}"
+            print(f"Error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=error_msg)
         """Process uploaded STG file - Real AGI format"""
         try:
             parsed_stg = STGParser.parse_stg(stg_content)
