@@ -126,11 +126,14 @@ backend:
     file: "earthimager_wrapper.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "INI parser correctly extracts forward modeling and inversion parameters"
+      - working: true
+        agent: "testing"
+        comment: "INI file processing tested successfully with toy-14-dd data. Correctly parsed all 6 sections (Initial, Forward, ResInv, IPInv, Terrain, CRP). Forward method=1 (FE), boundary condition=0 (Dirichlet), max iterations=20, Lagrange=10. API endpoint /api/earthimager/upload-ini working correctly."
 
   - task: "Forward Modeling C-ABI Integration"
     implemented: true
