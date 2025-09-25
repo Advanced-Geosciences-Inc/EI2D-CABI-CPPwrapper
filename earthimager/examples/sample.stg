@@ -1,0 +1,12 @@
+# Sample STG file for EarthImager 2D
+# Survey: Dipole-dipole configuration
+NumElectrodes=8
+
+# ABMN data (A B M N format)
+1 2 3 4
+2 3 4 5  
+3 4 5 6
+4 5 6 7
+1 2 4 5
+2 3 5 6
+3 4 6 7
