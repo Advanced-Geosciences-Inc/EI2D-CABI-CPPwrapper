@@ -168,6 +168,346 @@ class EI2DWrapper:
             }
 
 
+class EI2DRealDataProcessor:
+    """Process real EarthImager 2D data files and interface with C-ABI"""
+    
+    def __init__(self, lib_path: Optional[str] = None):
+        """Initialize with EI2D library"""
+        if lib_path is None:
+            lib_path = "/app/earthimager/cli/build/libei2d_core.so"
+        
+        self.lib_path = lib_path
+        self.lib = None
+        self.current_config = {}
+        self._setup_library()
+        
+    def _setup_library(self):
+        """Set up the EI2D shared library"""
+        try:
+            if os.path.exists(self.lib_path):
+                self.lib = ctypes.CDLL(self.lib_path)
+                self._setup_function_signatures()
+                print(f"✓ EI2D library loaded from {self.lib_path}")
+            else:
+                print(f"⚠ EI2D library not found at {self.lib_path}")
+                self.lib = None
+        except Exception as e:
+            print(f"⚠ Failed to load EI2D library: {e}")
+            self.lib = None
+    
+    def _setup_function_signatures(self):
+        """Set up C function signatures for proper calling"""
+        if not self.lib:
+            return
+            
+        try:
+            # ei2d_InitForwGlobals
+            self.lib.ei2d_InitForwGlobals.argtypes = [
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_double, ctypes.c_double, ctypes.c_double
+            ]
+            self.lib.ei2d_InitForwGlobals.restype = None
+            
+            # ei2d_SetNumParamForward
+            self.lib.ei2d_SetNumParamForward.argtypes = [ctypes.c_int32, ctypes.c_int32]
+            self.lib.ei2d_SetNumParamForward.restype = None
+            
+            # ei2d_ForwardFD
+            self.lib.ei2d_ForwardFD.argtypes = [
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32),
+                ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), 
+                ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32),
+                ctypes.POINTER(ctypes.c_int32), ctypes.c_int32,
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32
+            ]
+            self.lib.ei2d_ForwardFD.restype = None
+            
+        except Exception as e:
+            print(f"⚠ Failed to set up function signatures: {e}")
+    
+    def process_ini_stg_files(self, ini_content: str, stg_content: str) -> Dict[str, Any]:
+        """Process INI and STG files together for real forward modeling"""
+        try:
+            # Parse INI configuration
+            ini_data = INIParser.parse_ini(ini_content)
+            forward_params = ini_data.get("Forward", {})
+            
+            # Parse STG survey data  
+            stg_data = STGParser.parse_stg(stg_content)
+            
+            # Extract key parameters
+            forw_mod_meth = int(forward_params.get("ForwModMeth", "1"))  # 0=FD, 1=FE
+            forw_solver = int(forward_params.get("ForwSolver", "0"))
+            bc_type = int(forward_params.get("BCType", "0"))
+            forw_accuracy = int(forward_params.get("ForwAccuracy", "1"))
+            forw_cg_iter = int(forward_params.get("ForwCGIter", "100"))
+            forw_cg_resid = float(forward_params.get("ForwCGResid", "1E-6"))
+            
+            # Get electrode and measurement data from STG
+            electrodes = stg_data["electrodes"]
+            measurements = stg_data["full_measurements"]
+            num_electrodes = len(electrodes)
+            num_measurements = len(measurements)
+            
+            print(f"Processing: {num_electrodes} electrodes, {num_measurements} measurements")
+            print(f"Forward method: {'FE' if forw_mod_meth == 1 else 'FD'}")
+            
+            if self.lib:
+                # Use real EI2D C-ABI
+                return self._run_real_forward_modeling(
+                    electrodes, measurements, forw_mod_meth, forw_solver, 
+                    bc_type, forw_accuracy, forw_cg_iter, forw_cg_resid
+                )
+            else:
+                # Fallback to enhanced mock with real data structure
+                return self._run_enhanced_mock_with_real_data(
+                    electrodes, measurements, stg_data, ini_data
+                )
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to process INI/STG files: {str(e)}"
+            }
+    
+    def _run_real_forward_modeling(self, electrodes: List, measurements: List, 
+                                 forw_mod_meth: int, forw_solver: int, bc_type: int,
+                                 forw_accuracy: int, forw_cg_iter: int, forw_cg_resid: float) -> Dict[str, Any]:
+        """Run actual EI2D forward modeling using C-ABI"""
+        
+        try:
+            # Build mesh from electrodes (simplified for this example)
+            x_coords = sorted([e['x'] for e in electrodes])
+            y_coords = [0.0]  # Surface level
+            
+            # Extend mesh in depth (simple approach)
+            max_x = max(x_coords)
+            spacing = x_coords[1] - x_coords[0] if len(x_coords) > 1 else 1.0
+            
+            # Create depth layers
+            for i in range(1, 6):  # 5 depth levels
+                y_coords.append(i * spacing * 0.5)
+            
+            nNx = len(x_coords)
+            nNy = len(y_coords)
+            nNodes = nNx * nNy
+            nElem = (nNx - 1) * (nNy - 1)
+            
+            # Build node arrays
+            nodeX = np.zeros(nNodes, dtype=np.float64)
+            nodeY = np.zeros(nNodes, dtype=np.float64)
+            
+            for j in range(nNy):
+                for i in range(nNx):
+                    idx = j * nNx + i
+                    nodeX[idx] = x_coords[i]
+                    nodeY[idx] = y_coords[j]
+            
+            # Create conductivity model (homogeneous for now)
+            cond = np.full(nElem, 0.01, dtype=np.float64)  # 100 ohm-m background
+            
+            # Build electrode mapping
+            nElec = len(electrodes)
+            elecNodeID = np.arange(1, nElec + 1, dtype=np.int32)
+            
+            # Convert measurements to ABMN format
+            nData = len(measurements)
+            stingCMD = np.zeros(nData * 4, dtype=np.int32)
+            
+            for i, meas in enumerate(measurements):
+                # Map electrode positions to indices (simplified)
+                a_idx = int(meas["electrode_a"]["x"] / spacing) + 1
+                b_idx = int(meas["electrode_b"]["x"] / spacing) + 1  
+                m_idx = int(meas["electrode_m"]["x"] / spacing) + 1
+                n_idx = int(meas["electrode_n"]["x"] / spacing) + 1
+                
+                stingCMD[i*4:i*4+4] = [a_idx, b_idx, m_idx, n_idx]
+            
+            # Parameter windows
+            nParamX, nParamY = 1, 1
+            p1 = np.array([1], dtype=np.int32)
+            p2 = np.array([nNx], dtype=np.int32)
+            q1 = np.array([1], dtype=np.int32)
+            q2 = np.array([nNy], dtype=np.int32)
+            
+            # Infinity electrode
+            inf = np.array([nElec + 1], dtype=np.int32)
+            
+            # Initialize EI2D engine
+            self.lib.ei2d_InitForwGlobals(
+                nData,         # NumData
+                nElec + 1,     # NumElectrodes (including infinity)
+                1,             # NumInfElectrodes
+                nNx,           # NumNodeX
+                nNy,           # NumNodeY
+                forw_mod_meth, # ForwModMeth
+                forw_solver,   # ForwSolver
+                0,             # InvMethod
+                forw_accuracy, # ForwAccuracy
+                forw_cg_iter,  # ForwCGIter
+                bc_type,       # BCType
+                forw_cg_resid, # ForwCGResid
+                0.0,           # MinTxRxSep
+                0.0            # MaxTxRxSep
+            )
+            
+            self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
+            
+            # Prepare output arrays
+            VI = np.zeros(nData, dtype=np.float64)
+            jacobian = np.zeros(nData * nParamX * nParamY, dtype=np.float64)
+            
+            # Call forward modeling
+            self.lib.ei2d_ForwardFD(
+                nodeX.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                nodeY.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                cond.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                VI.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                jacobian.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                elecNodeID.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                stingCMD.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                p1.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                p2.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                q1.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                q2.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                inf.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                0,             # GetJacobian
+                nNodes,        # nNodes
+                nElem,         # nElem
+                nData          # nData
+            )
+            
+            # Calculate apparent resistivities from V/I
+            apparent_resistivities = []
+            geometric_factors = []
+            
+            for i, vi in enumerate(VI):
+                # Calculate geometric factor for each measurement
+                meas = measurements[i]
+                a_pos = np.array([meas["electrode_a"]["x"], meas["electrode_a"]["y"]])
+                b_pos = np.array([meas["electrode_b"]["x"], meas["electrode_b"]["y"]])
+                m_pos = np.array([meas["electrode_m"]["x"], meas["electrode_m"]["y"]])
+                n_pos = np.array([meas["electrode_n"]["x"], meas["electrode_n"]["y"]])
+                
+                # Standard geometric factor calculation
+                g_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
+                geometric_factors.append(g_factor)
+                
+                # Apparent resistivity = geometric_factor * (V/I)
+                if abs(vi) > 1e-12:  # Avoid division by zero
+                    app_res = g_factor * vi  # vi is already V/I from EI2D
+                    apparent_resistivities.append(app_res)
+                else:
+                    apparent_resistivities.append(0.0)
+            
+            return {
+                "success": True,
+                "method": "real_ei2d_forward_fd",
+                "parameters": {
+                    "forward_method": "FE" if forw_mod_meth == 1 else "FD",
+                    "solver": "CG" if forw_solver == 1 else "Cholesky",
+                    "boundary_condition": bc_type,
+                    "mesh_nodes_x": nNx,
+                    "mesh_nodes_y": nNy,
+                    "electrodes": len(electrodes),
+                    "measurements": nData
+                },
+                "results": {
+                    "vi_data": [float(vi) if np.isfinite(vi) else 0.0 for vi in VI],
+                    "apparent_resistivities": apparent_resistivities,
+                    "geometric_factors": geometric_factors,
+                    "electrode_positions": [[e['x'], e['y'], e['z']] for e in electrodes],
+                    "measurement_configs": [[m["electrode_a"]["x"], m["electrode_b"]["x"], 
+                                           m["electrode_m"]["x"], m["electrode_n"]["x"]] for m in measurements[:10]]
+                },
+                "mesh": {
+                    "node_x": [float(x) for x in nodeX],
+                    "node_y": [float(y) for y in nodeY],
+                    "conductivity": [float(c) for c in cond]
+                },
+                "message": f"Real EI2D forward modeling completed. {nData} V/I values computed using {forw_mod_meth} method."
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Real EI2D forward modeling failed: {str(e)}"
+            }
+    
+    def _calculate_geometric_factor(self, a_pos, b_pos, m_pos, n_pos):
+        """Calculate geometric factor for apparent resistivity"""
+        def distance(p1, p2):
+            return np.sqrt(np.sum((p1 - p2)**2))
+        
+        # Distances
+        ra_m = distance(a_pos, m_pos)
+        ra_n = distance(a_pos, n_pos)
+        rb_m = distance(b_pos, m_pos)
+        rb_n = distance(b_pos, n_pos)
+        
+        # Geometric factor for half-space
+        k = 2 * np.pi / (1/ra_m - 1/ra_n - 1/rb_m + 1/rb_n)
+        return k
+    
+    def _run_enhanced_mock_with_real_data(self, electrodes: List, measurements: List, 
+                                        stg_data: Dict, ini_data: Dict) -> Dict[str, Any]:
+        """Enhanced mock that uses real measurement structure but synthetic calculations"""
+        
+        # Use actual measurement data structure but calculate mock apparent resistivities
+        apparent_resistivities = []
+        vi_values = []
+        
+        for meas in measurements:
+            # Use real current and calculate mock voltage
+            current = meas.get("current", 1000)  # mA
+            real_app_res = meas.get("apparent_resistivity", 150.0)
+            
+            # Calculate geometric factor
+            a_pos = np.array([meas["electrode_a"]["x"], meas["electrode_a"]["y"]])
+            b_pos = np.array([meas["electrode_b"]["x"], meas["electrode_b"]["y"]])
+            m_pos = np.array([meas["electrode_m"]["x"], meas["electrode_m"]["y"]])
+            n_pos = np.array([meas["electrode_n"]["x"], meas["electrode_n"]["y"]])
+            
+            g_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
+            
+            # Calculate V/I from apparent resistivity
+            if g_factor != 0:
+                vi = real_app_res / g_factor  # V/I = rho_a / K
+                vi_values.append(vi)
+                apparent_resistivities.append(real_app_res)
+            else:
+                vi_values.append(0.0)
+                apparent_resistivities.append(0.0)
+        
+        return {
+            "success": True,
+            "method": "enhanced_mock_with_real_data",
+            "note": "Using real STG data structure with enhanced calculations (EI2D C-ABI not available)",
+            "parameters": {
+                "forward_method": ini_data.get("Forward", {}).get("ForwModMeth", "1"),
+                "electrodes": len(electrodes),
+                "measurements": len(measurements),
+                "survey_type": stg_data.get("header_info", {}).get("type", "dipole-dipole")
+            },
+            "results": {
+                "vi_data": vi_values,
+                "apparent_resistivities": apparent_resistivities,
+                "electrode_positions": [[e['x'], e['y'], e['z']] for e in electrodes],
+                "measurement_configs": [[m["electrode_a"]["x"], m["electrode_b"]["x"], 
+                                       m["electrode_m"]["x"], m["electrode_n"]["x"]] for m in measurements[:10]],
+                "voltage_range": stg_data.get("voltage_range", {}),
+                "resistivity_range": stg_data.get("resistivity_range", {})
+            },
+            "message": f"Enhanced mock processing completed using real data structure from {len(measurements)} measurements"
+        }
+
+
 class INIParser:
     """Parse and generate EarthImager 2D INI files"""
     
