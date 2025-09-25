@@ -68,6 +68,47 @@ async def health_check():
     return await ei_service.health_check()
 
 # EarthImager routes
+@api_router.post("/earthimager/run-inversion")
+async def run_full_inversion(ini_file: UploadFile = File(...), stg_file: UploadFile = File(...)):
+    """Run complete EarthImager 2D inversion workflow"""
+    
+    # Validate file extensions
+    if not ini_file.filename.endswith('.ini'):
+        raise HTTPException(status_code=400, detail="First file must be an INI file")
+    if not stg_file.filename.endswith('.stg'):
+        raise HTTPException(status_code=400, detail="Second file must be an STG file")
+    
+    try:
+        # Read file contents
+        ini_content = (await ini_file.read()).decode('utf-8')
+        stg_content = (await stg_file.read()).decode('utf-8')
+        
+        # Process with EI2D inversion workflow
+        result = await ei_service.run_full_inversion(ini_content, stg_content)
+        result["input_files"] = {
+            "ini_file": ini_file.filename,
+            "stg_file": stg_file.filename
+        }
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inversion workflow failed: {str(e)}")
+
+@api_router.post("/earthimager/download-out-file")
+async def download_out_file(content: str = Form(...)):
+    """Download generated OUT file"""
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.out', delete=False) as f:
+        f.write(content)
+        temp_path = f.name
+    
+    return FileResponse(
+        path=temp_path,
+        filename="earthimager_inversion_results.out",
+        media_type="text/plain"
+    )
+
 @api_router.post("/earthimager/forward-model-real")
 async def run_real_forward_model(ini_file: UploadFile = File(...), stg_file: UploadFile = File(...)):
     """Run real forward modeling using uploaded INI and STG files"""
