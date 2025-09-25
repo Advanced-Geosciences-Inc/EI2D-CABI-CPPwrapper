@@ -373,7 +373,7 @@ const EarthImagerInterface = () => {
 };
 
 // Parameters Tab Component
-const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParams, onRunForwardModel, onRunRealForwardModel, onRunInversion, onGenerateIni, loading, uploadedFiles }) => {
+const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParams, onRunForwardModel, onRunRealForwardModel, onRunInversion, onValidateData, onDebugProcessing, onGenerateIni, loading, uploadedFiles }) => {
   const [paramTab, setParamTab] = useState('forward');
 
   return (
@@ -382,7 +382,8 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
         <nav className="-mb-px flex">
           {[
             { id: 'forward', label: 'Forward Modeling' },
-            { id: 'inversion', label: 'Inversion Settings' }
+            { id: 'inversion', label: 'Inversion Settings' },
+            { id: 'debug', label: 'Data Validation' }
           ].map(({ id, label }) => (
             <button
               key={id}
@@ -605,6 +606,69 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {paramTab === 'debug' && (
+          <div className="space-y-6">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+              <h3 className="font-medium text-yellow-900 mb-2">🔍 Data Validation & Debugging</h3>
+              <p className="text-sm text-yellow-800">
+                Use these tools to validate data processing, check accuracy against known values, 
+                and debug each step of the EarthImager 2D pipeline.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h4 className="font-medium text-gray-900 mb-3">📊 Data Flow Validation</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Validates INI/STG parsing, parameter extraction, and data integrity.
+                </p>
+                <button
+                  onClick={onValidateData}
+                  disabled={loading || !uploadedFiles?.ini || !uploadedFiles?.stg}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{loading ? 'Validating...' : 'Validate Data Flow'}</span>
+                </button>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h4 className="font-medium text-gray-900 mb-3">🔧 Processing Debug</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Step-by-step debugging of mesh generation, parameter setup, and calculations.
+                </p>
+                <button
+                  onClick={onDebugProcessing}
+                  disabled={loading || !uploadedFiles?.ini || !uploadedFiles?.stg}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>{loading ? 'Debugging...' : 'Debug Processing Steps'}</span>
+                </button>
+              </div>
+            </div>
+
+            {(uploadedFiles?.ini && uploadedFiles?.stg) && (
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-2">📋 Quick File Summary</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">INI File:</span>
+                    <div>{uploadedFiles.ini.name}</div>
+                    <div>Sections: {uploadedFiles.ini.data?.sections?.length || 0}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">STG File:</span>
+                    <div>{uploadedFiles.stg.name}</div>
+                    <div>Measurements: {uploadedFiles.stg.data?.num_measurements || 0}</div>
+                    <div>Electrodes: {uploadedFiles.stg.data?.num_electrodes || 0}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
