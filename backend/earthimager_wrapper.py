@@ -562,21 +562,21 @@ class EI2DRealDataProcessor:
                     "measurements": num_measurements,
                     "max_iterations": max_iterations,
                     "final_iteration": inversion_result.get("final_iteration", 0),
-                    "final_rms": inversion_result.get("final_rms", 0.0),
+                    "final_rms": float(inversion_result.get("final_rms", 0.0)),
                     "forward_method": "FE" if forw_mod_meth == 1 else "FD",
-                    "convergence": inversion_result.get("converged", False)
+                    "convergence": bool(inversion_result.get("converged", False))
                 },
                 "mesh": {
-                    "nodes_x": mesh_result["nodes_x"],
-                    "nodes_y": mesh_result["nodes_y"],
-                    "total_nodes": mesh_result["total_nodes"],
-                    "total_elements": mesh_result["total_elements"],
-                    "parameters": mesh_result["num_parameters"]
+                    "nodes_x": int(mesh_result["nodes_x"]),
+                    "nodes_y": int(mesh_result["nodes_y"]),
+                    "total_nodes": int(mesh_result["total_nodes"]),
+                    "total_elements": int(mesh_result["total_elements"]),
+                    "parameters": int(mesh_result["num_parameters"])
                 },
                 "results": {
-                    "resistivity_model": inversion_result.get("final_resistivities", []),
-                    "calculated_data": inversion_result.get("calculated_data", []),
-                    "data_residuals": inversion_result.get("data_residuals", []),
+                    "resistivity_model": [float(x) for x in inversion_result.get("final_resistivities", [])],
+                    "calculated_data": [float(x) for x in inversion_result.get("calculated_data", [])],
+                    "data_residuals": [float(x) for x in inversion_result.get("data_residuals", [])],
                     "iteration_history": inversion_result.get("iteration_history", [])
                 },
                 "out_file": {
