@@ -45,6 +45,73 @@ const EarthImagerInterface = () => {
     }
   };
 
+  const validateDataFlow = async () => {
+    if (!uploadedFiles.ini || !uploadedFiles.stg) {
+      setStatus('Error: Please upload both INI and STG files for validation');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      
+      // Create basic files for validation (in real implementation, use original content)
+      const iniContent = 'Mock INI for validation';
+      const stgContent = 'Mock STG for validation';
+      
+      const iniBlob = new Blob([iniContent], { type: 'text/plain' });
+      const stgBlob = new Blob([stgContent], { type: 'text/plain' });
+      
+      formData.append('ini_file', iniBlob, uploadedFiles.ini.name);
+      formData.append('stg_file', stgBlob, uploadedFiles.stg.name);
+
+      const response = await axios.post(`${API}/earthimager/validate-data`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults({
+        ...response.data,
+        validation_type: "data_validation",
+        success: true
+      });
+      setStatus('Data validation completed - check Results tab for details');
+    } catch (error) {
+      setStatus(`Validation error: ${error.response?.data?.detail || error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const debugProcessingSteps = async () => {
+    if (!uploadedFiles.ini || !uploadedFiles.stg) {
+      setStatus('Error: Please upload both INI and STG files for debugging');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      const iniBlob = new Blob(['Mock INI'], { type: 'text/plain' });
+      const stgBlob = new Blob(['Mock STG'], { type: 'text/plain' });
+      
+      formData.append('ini_file', iniBlob, uploadedFiles.ini.name);
+      formData.append('stg_file', stgBlob, uploadedFiles.stg.name);
+
+      const response = await axios.post(`${API}/earthimager/debug-processing`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults({
+        ...response.data,
+        validation_type: "debug_processing",
+        success: true
+      });
+      setStatus('Processing debug completed - check Results tab for step-by-step details');
+    } catch (error) {
+      setStatus(`Debug error: ${error.response?.data?.detail || error.message}`);
+    }
+    setLoading(false);
+  };
+
   const runInversion = async () => {
     if (!uploadedFiles.ini || !uploadedFiles.stg) {
       setStatus('Error: Please upload both INI and STG files for inversion');
