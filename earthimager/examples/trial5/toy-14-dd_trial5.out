@@ -1,0 +1,53 @@
+;------ SIMULATION SETTINGS ------
+
+AGI Command File: C:\AGI\EarthImager2D\Demo\toy-14-dd.cmd
+Number of Data = 74
+Number of Electrodes = 14
+Number of Surface Electrodes = 14
+Number of IP Data = 0
+
+Processing starts at 2025-09-24 10:14:46
+
+;------ SETTINGS ------
+
+Minimum Voltage (mv) = 0.2
+Minimum V/I (ohm) = 0.0005
+Minimum apparent resistivity (ohm-m)  = 1
+Maximum apparent resistivity (ohm-m)  = 10000
+Maximum repeat error (%)  = 2
+Maximum reciprocal error (%)  = 2
+Remove negative apparent resistivity in ERT data: Yes
+Keep All Data (no data removal): No
+Inversion Method:  Forward modeling only
+Vertical axis:  Positive Upward
+Y Coordinate =  Depth
+Min electrode spacing X (m)  = 0.003
+Min electrode spacing Z (m)  = 0.003
+Forward Modeling Method:  Finite element method
+Forward system solver:  Cholesky decomposition method
+Boundary condition type:  Dirichlet
+Number cells or elements betwenn two electrodes = 2
+Lower-layer-thickness / Upper-layer-thickness =  1.1
+Depth of Inverted Model / Depth of Pseudosection =  1.1
+Max number of iteration of nonlinear inversion = 20
+Stop RMS error = 2%
+Mininum error reduction between two iterations = 2%
+Stop at Max number of iterations: Yes
+Stop when RMS is small enough: No
+Stop when RMS can not be reduced: No
+Res Data reweighting: No
+Use Reciprocal Error: No
+Stop when L2 norm is small enough: Yes
+Initial smoothness factor = 10
+Roughness conditioner = 0.2
+Starting model: Avg AppRes.
+Start halfspace resistivity = 1.00 ohm-m
+Minimum resistivity =        1.0 ohm-m
+Maximum resistivity =   100000.0 ohm-m
+Number of elements combined horizontally = 1
+Number of elements combined verically = 1
+Vertical / Horizontal roughness ratio = 0.5
+Estimated noise of resistivity data  = 2%
+Initial damping factor of resistivity = 10
+Starting iteration of quasi Newton method = 20
+IP inversion method: No IP Inversion
