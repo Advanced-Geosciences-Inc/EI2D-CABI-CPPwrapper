@@ -405,11 +405,11 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">File Manager</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* INI File Upload */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <Upload className="mx-auto h-8 w-8 text-gray-400" />
               <div className="mt-2">
                 <label className="cursor-pointer">
                   <span className="text-sm font-medium text-gray-900">Upload INI File</span>
@@ -420,7 +420,7 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500 mt-1">Configuration file (.ini)</p>
+                <p className="text-xs text-gray-500 mt-1">Configuration (.ini)</p>
               </div>
               {uploadedFiles.ini && (
                 <div className="mt-2 text-sm text-green-600">
@@ -431,9 +431,9 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
           </div>
 
           {/* STG File Upload */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <Upload className="mx-auto h-8 w-8 text-gray-400" />
               <div className="mt-2">
                 <label className="cursor-pointer">
                   <span className="text-sm font-medium text-gray-900">Upload STG File</span>
@@ -444,7 +444,7 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-gray-500 mt-1">Survey data file (.stg)</p>
+                <p className="text-xs text-gray-500 mt-1">Survey data (.stg)</p>
               </div>
               {uploadedFiles.stg && (
                 <div className="mt-2 text-sm text-green-600">
@@ -453,17 +453,65 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
               )}
             </div>
           </div>
+
+          {/* MDL File Upload */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+            <div className="text-center">
+              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+              <div className="mt-2">
+                <label className="cursor-pointer">
+                  <span className="text-sm font-medium text-gray-900">Upload MDL File</span>
+                  <input
+                    type="file"
+                    accept=".mdl"
+                    onChange={(e) => handleFileUpload(e, 'mdl')}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-1">Model (.mdl)</p>
+              </div>
+              {uploadedFiles.mdl && (
+                <div className="mt-2 text-sm text-green-600">
+                  ✓ {uploadedFiles.mdl.name}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* MOD File Upload */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+            <div className="text-center">
+              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+              <div className="mt-2">
+                <label className="cursor-pointer">
+                  <span className="text-sm font-medium text-gray-900">Upload MOD File</span>
+                  <input
+                    type="file"
+                    accept=".mod"
+                    onChange={(e) => handleFileUpload(e, 'mod')}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-1">Resistivity (.mod)</p>
+              </div>
+              {uploadedFiles.mod && (
+                <div className="mt-2 text-sm text-green-600">
+                  ✓ {uploadedFiles.mod.name}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* File Information */}
-        {(uploadedFiles.ini || uploadedFiles.stg) && (
+        {/* File Information Display */}
+        {Object.keys(uploadedFiles).length > 0 && (
           <div className="mt-6">
             <h3 className="text-md font-medium text-gray-900 mb-3">Uploaded Files Information</h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {uploadedFiles.ini && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <h4 className="font-medium text-blue-900">INI Configuration</h4>
-                  <div className="text-sm text-blue-700 mt-1">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">📄 INI Configuration</h4>
+                  <div className="text-sm text-blue-700 space-y-1">
                     <div>Sections: {uploadedFiles.ini.data.sections?.join(', ')}</div>
                     <div>Forward Method: {uploadedFiles.ini.data.forward_method === '0' ? 'FD' : 'FE'}</div>
                     <div>Max Iterations: {uploadedFiles.ini.data.max_iterations}</div>
@@ -472,16 +520,65 @@ const FilesTab = ({ uploadedFiles, onFileUpload }) => {
               )}
 
               {uploadedFiles.stg && (
-                <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                  <h4 className="font-medium text-green-900">Survey Data (STG)</h4>
-                  <div className="text-sm text-green-700 mt-1">
+                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                  <h4 className="font-medium text-green-900 mb-2">🔌 Survey Data (STG)</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <div>Format: {uploadedFiles.stg.data.format}</div>
                     <div>Electrodes: {uploadedFiles.stg.data.num_electrodes}</div>
                     <div>Measurements: {uploadedFiles.stg.data.num_measurements}</div>
-                    <div>Electrode Range: {uploadedFiles.stg.data.electrode_range?.min} - {uploadedFiles.stg.data.electrode_range?.max}</div>
+                    <div>Spacing: {uploadedFiles.stg.data.electrode_spacing?.toFixed(1)} m</div>
+                    {uploadedFiles.stg.data.resistivity_range && (
+                      <div>App. Res: {uploadedFiles.stg.data.resistivity_range.min?.toFixed(1)} - {uploadedFiles.stg.data.resistivity_range.max?.toFixed(1)} Ω·m</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {uploadedFiles.mdl && (
+                <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
+                  <h4 className="font-medium text-purple-900 mb-2">🏗️ Model (MDL)</h4>
+                  <div className="text-sm text-purple-700 space-y-1">
+                    <div>Format: {uploadedFiles.mdl.data.format}</div>
+                    <div>Electrodes: {uploadedFiles.mdl.data.electrode_count}</div>
+                    <div>Commands: {uploadedFiles.mdl.data.measurement_count}</div>
+                    <div>Sections: {uploadedFiles.mdl.data.sections?.join(', ')}</div>
+                  </div>
+                </div>
+              )}
+
+              {uploadedFiles.mod && (
+                <div className="bg-orange-50 border border-orange-200 rounded-md p-4">
+                  <h4 className="font-medium text-orange-900 mb-2">🌍 Resistivity Model (MOD)</h4>
+                  <div className="text-sm text-orange-700 space-y-1">
+                    <div>Format: {uploadedFiles.mod.data.format}</div>
+                    <div>Background: {uploadedFiles.mod.data.background_resistivity} Ω·m</div>
+                    <div>Blocks: {uploadedFiles.mod.data.total_blocks}</div>
+                    {uploadedFiles.mod.data.layers && (
+                      <div>Layers: {uploadedFiles.mod.data.layers.num_layers}</div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
+
+            {/* 3-Layer Model Visualization */}
+            {uploadedFiles.mod?.data?.layers && (
+              <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-3">3-Layer Resistivity Model</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {uploadedFiles.mod.data.layers.layer_info?.map((layer, idx) => (
+                    <div key={idx} className="bg-white border rounded p-3">
+                      <div className="font-medium text-sm">Layer {layer.layer}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        <div>Y: {layer.y_position?.toFixed(3)} m</div>
+                        <div>ρ: {layer.resistivities?.join(', ')} Ω·m</div>
+                        <div>Blocks: {layer.block_count}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
