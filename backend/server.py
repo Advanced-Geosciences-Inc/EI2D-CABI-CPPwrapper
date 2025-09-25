@@ -145,15 +145,29 @@ async def upload_mod_file(file: UploadFile = File(...)):
 @api_router.post("/earthimager/upload-stg")
 async def upload_stg_file(file: UploadFile = File(...)):
     """Upload and process STG survey file"""
-    if not file.filename.endswith('.stg'):
-        raise HTTPException(status_code=400, detail="File must be an STG file")
-    
-    content = await file.read()
-    stg_content = content.decode('utf-8')
-    
-    result = await ei_service.process_stg_file(stg_content)
-    result["filename"] = file.filename
-    return result
+    try:
+        print(f"Received STG file: {file.filename}, size: {file.size}")
+        
+        if not file.filename.endswith('.stg'):
+            raise HTTPException(status_code=400, detail="File must be an STG file")
+        
+        content = await file.read()
+        print(f"Read {len(content)} bytes")
+        
+        stg_content = content.decode('utf-8')
+        print(f"Decoded to {len(stg_content)} characters")
+        print(f"First 200 chars: {stg_content[:200]}")
+        
+        result = await ei_service.process_stg_file(stg_content)
+        result["filename"] = file.filename
+        return result
+        
+    except UnicodeDecodeError as e:
+        print(f"Unicode decode error: {e}")
+        raise HTTPException(status_code=400, detail=f"File encoding error: {str(e)}")
+    except Exception as e:
+        print(f"STG upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"STG processing failed: {str(e)}")
 
 @api_router.post("/earthimager/generate-ini")
 async def generate_ini_config(params: INIConfigParams):
