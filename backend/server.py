@@ -14,7 +14,7 @@ import tempfile
 import json
 
 # Import EarthImager service
-from .earthimager_service import EarthImagerService
+from earthimager_service import EarthImagerService
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
