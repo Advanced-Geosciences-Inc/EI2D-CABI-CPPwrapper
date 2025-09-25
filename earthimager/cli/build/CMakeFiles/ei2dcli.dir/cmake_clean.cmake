@@ -1,10 +1,8 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.obj"
-  "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.obj.d"
-  "ei2dcli.exe"
-  "ei2dcli.exe.manifest"
+  "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o"
+  "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o.d"
+  "ei2dcli"
   "ei2dcli.pdb"
-  "libei2dcli.dll.a"
 )
 
 # Per-language clean rules from dependency scanning.

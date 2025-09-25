@@ -8,17 +8,13 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "C:/AGI/aws_src/ei2d_port/apps/ei2dcli/src/ei2dcli.cpp" "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.obj" "gcc" "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.obj.d"
+  "/app/earthimager/cli/apps/ei2dcli/src/ei2dcli.cpp" "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o" "gcc" "CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  "C:/AGI/aws_src/ei2d_port/build/CMakeFiles/ei2d_core.dir/DependInfo.cmake"
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/app/earthimager/cli/build/CMakeFiles/ei2d_core.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.
-set(CMAKE_Fortran_TARGET_MODULE_DIR "C:/AGI/aws_src/ei2d_port/build/fortran_mods")
+set(CMAKE_Fortran_TARGET_MODULE_DIR "/app/earthimager/cli/build/fortran_mods")

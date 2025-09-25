@@ -1,3 +1,1 @@
-C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\ei2dcli.dir/objects.a
-C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\ei2dcli.dir/objects.a @CMakeFiles\ei2dcli.dir\objects1.rsp
-C:\msys64\mingw64\bin\c++.exe -O2 -g -DNDEBUG -Wl,--whole-archive CMakeFiles\ei2dcli.dir/objects.a -Wl,--no-whole-archive -o ei2dcli.exe -Wl,--out-implib,libei2dcli.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\ei2dcli.dir\linkLibs.rsp
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o -o ei2dcli  -Wl,-rpath,/app/earthimager/cli/build libei2d_core.so /usr/lib/aarch64-linux-gnu/libopenblas.so /usr/lib/gcc/aarch64-linux-gnu/12/libgomp.so /usr/lib/aarch64-linux-gnu/libpthread.a 

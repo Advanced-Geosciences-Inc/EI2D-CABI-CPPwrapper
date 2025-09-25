@@ -1,4 +1,4 @@
-C:/AGI/aws_src/ei2d_port/build/CMakeFiles/ei2d_core.dir
-C:/AGI/aws_src/ei2d_port/build/CMakeFiles/ei2dcli.dir
-C:/AGI/aws_src/ei2d_port/build/CMakeFiles/edit_cache.dir
-C:/AGI/aws_src/ei2d_port/build/CMakeFiles/rebuild_cache.dir
+/app/earthimager/cli/build/CMakeFiles/ei2d_core.dir
+/app/earthimager/cli/build/CMakeFiles/ei2dcli.dir
+/app/earthimager/cli/build/CMakeFiles/edit_cache.dir
+/app/earthimager/cli/build/CMakeFiles/rebuild_cache.dir
