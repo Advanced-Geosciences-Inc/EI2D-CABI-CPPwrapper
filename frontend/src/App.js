@@ -45,6 +45,37 @@ const EarthImagerInterface = () => {
     }
   };
 
+  const runRealForwardModel = async () => {
+    if (!uploadedFiles.ini || !uploadedFiles.stg) {
+      setStatus('Error: Please upload both INI and STG files for real forward modeling');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      // We need to recreate File objects from the uploaded data
+      const iniBlob = new Blob([uploadedFiles.ini.data.parsed_data ? 
+        JSON.stringify(uploadedFiles.ini.data.parsed_data) : 'Mock INI content'], 
+        { type: 'text/plain' });
+      const stgBlob = new Blob(['Mock STG content'], { type: 'text/plain' });
+      
+      formData.append('ini_file', iniBlob, uploadedFiles.ini.name);
+      formData.append('stg_file', stgBlob, uploadedFiles.stg.name);
+
+      const response = await axios.post(`${API}/earthimager/forward-model-real`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults(response.data);
+      setStatus(`Real forward modeling completed: ${response.data.method}`);
+    } catch (error) {
+      setStatus(`Real forward modeling error: ${error.response?.data?.detail || error.message}`);
+      console.error('Real forward modeling error:', error);
+    }
+    setLoading(false);
+  };
+
   const runForwardModel = async () => {
     setLoading(true);
     try {
