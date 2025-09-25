@@ -68,6 +68,33 @@ async def health_check():
     return await ei_service.health_check()
 
 # EarthImager routes
+@api_router.post("/earthimager/forward-model-real")
+async def run_real_forward_model(ini_file: UploadFile = File(...), stg_file: UploadFile = File(...)):
+    """Run real forward modeling using uploaded INI and STG files"""
+    
+    # Validate file extensions
+    if not ini_file.filename.endswith('.ini'):
+        raise HTTPException(status_code=400, detail="First file must be an INI file")
+    if not stg_file.filename.endswith('.stg'):
+        raise HTTPException(status_code=400, detail="Second file must be an STG file")
+    
+    try:
+        # Read file contents
+        ini_content = (await ini_file.read()).decode('utf-8')
+        stg_content = (await stg_file.read()).decode('utf-8')
+        
+        # Process with real EI2D engine
+        result = await ei_service.run_real_forward_modeling(ini_content, stg_content)
+        result["input_files"] = {
+            "ini_file": ini_file.filename,
+            "stg_file": stg_file.filename
+        }
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Real forward modeling failed: {str(e)}")
+
 @api_router.post("/earthimager/forward-model")
 async def run_forward_model(params: ForwardModelParams):
     """Run forward modeling with specified parameters"""
