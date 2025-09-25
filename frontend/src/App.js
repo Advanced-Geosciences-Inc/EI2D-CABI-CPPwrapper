@@ -296,7 +296,7 @@ const EarthImagerInterface = () => {
         )}
 
         {activeTab === 'results' && (
-          <ResultsTab results={results} />
+          <ResultsTab results={results} onDownloadOutFile={downloadOutFile} />
         )}
       </div>
     </div>
