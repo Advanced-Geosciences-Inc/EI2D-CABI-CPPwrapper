@@ -18,15 +18,22 @@ class EarthImagerService:
     
     def __init__(self):
         self.wrapper = None
-        self._initialize_wrapper()
+        self.real_processor = None
+        self._initialize_services()
         
-    def _initialize_wrapper(self):
-        """Initialize the EI2D wrapper"""
+    def _initialize_services(self):
+        """Initialize EI2D services"""
         try:
             self.wrapper = EI2DWrapper()
         except Exception as e:
             print(f"Warning: Could not initialize EI2D wrapper: {e}")
             self.wrapper = None
+            
+        try:
+            self.real_processor = EI2DRealDataProcessor()
+        except Exception as e:
+            print(f"Warning: Could not initialize EI2D real processor: {e}")
+            self.real_processor = None
     
     async def run_forward_modeling(self, 
                                  n_electrodes: int = 8, 
