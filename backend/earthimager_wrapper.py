@@ -226,6 +226,23 @@ class EI2DRealDataProcessor:
             ]
             self.lib.ei2d_ForwardFD.restype = None
             
+            # ei2d_InitInvGlobals - NEW INVERSION FUNCTION
+            self.lib.ei2d_InitInvGlobals.argtypes = [
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_double, ctypes.c_double, ctypes.c_double
+            ]
+            self.lib.ei2d_InitInvGlobals.restype = None
+            
+            # ei2d_InvPCGLS - NEW INVERSION FUNCTION  
+            self.lib.ei2d_InvPCGLS.argtypes = [
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_double), ctypes.c_double, ctypes.c_int32, ctypes.c_int32,
+                ctypes.c_int32, ctypes.c_int32
+            ]
+            self.lib.ei2d_InvPCGLS.restype = None
+            
         except Exception as e:
             print(f"⚠ Failed to set up function signatures: {e}")
     
