@@ -184,3 +184,5 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Setting up backend testing for inversion workflow using toy-14-dd reference data. Need to verify OUT file format matches expected structure with iteration data, resistivity matrices, and sensitivity data."
+  - agent: "testing"
+    message: "Backend testing completed. STG and INI file processing working correctly with 74 measurements and 14 electrodes parsed successfully. However, C-ABI integration has critical Fortran runtime error causing backend to hang on inversion workflows. Forward modeling C-ABI integration failing with array bounds error in Sensitivity.f90 line 350."
