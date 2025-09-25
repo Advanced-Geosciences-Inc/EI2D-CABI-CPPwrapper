@@ -11,7 +11,7 @@ from pathlib import Path
 import json
 import traceback
 
-from earthimager_wrapper import EI2DWrapper, INIParser, STGParser, MDLParser, MODParser
+from earthimager_wrapper import EI2DWrapper, INIParser, STGParser, MDLParser, MODParser, EI2DRealDataProcessor
 
 class EarthImagerService:
     """Service class for EarthImager 2D operations"""
