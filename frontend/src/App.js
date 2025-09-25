@@ -123,22 +123,32 @@ const EarthImagerInterface = () => {
       setStatus('Starting EarthImager 2D inversion workflow...');
       
       // Create form data with the actual file contents
-      // Note: In a full implementation, we'd need to store original file contents
       const formData = new FormData();
       
-      // For demonstration, create basic files from the parsed data
-      const iniContent = Object.entries(uploadedFiles.ini.data.parsed_data || {})
-        .map(([section, values]) => {
-          const lines = [`[${section}]`];
-          Object.entries(values).forEach(([key, value]) => {
-            lines.push(`${key}=${value}`);
-          });
-          lines.push('');
-          return lines.join('\n');
-        }).join('\n');
+      // Use original file content if available, otherwise reconstruct from parsed data
+      let iniContent = uploadedFiles.ini.originalContent;
+      if (!iniContent) {
+        // Fallback: reconstruct from parsed data
+        iniContent = Object.entries(uploadedFiles.ini.data.parsed_data || {})
+          .map(([section, values]) => {
+            const lines = [`[${section}]`];
+            Object.entries(values).forEach(([key, value]) => {
+              lines.push(`${key}=${value}`);
+            });
+            lines.push('');
+            return lines.join('\n');
+          }).join('\n');
+      }
+      
+      let stgContent = uploadedFiles.stg.originalContent;
+      if (!stgContent) {
+        setStatus('Error: Original STG file content not available. Please re-upload the STG file.');
+        setLoading(false);
+        return;
+      }
       
       const iniBlob = new Blob([iniContent], { type: 'text/plain' });
-      const stgBlob = new Blob(['Mock STG content for inversion'], { type: 'text/plain' });
+      const stgBlob = new Blob([stgContent], { type: 'text/plain' });
       
       formData.append('ini_file', iniBlob, uploadedFiles.ini.name);
       formData.append('stg_file', stgBlob, uploadedFiles.stg.name);
