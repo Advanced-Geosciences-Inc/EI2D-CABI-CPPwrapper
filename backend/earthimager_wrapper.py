@@ -5,7 +5,7 @@ Direct interface to the ei2d_core shared library
 
 import ctypes
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 import os
 from pathlib import Path
 
