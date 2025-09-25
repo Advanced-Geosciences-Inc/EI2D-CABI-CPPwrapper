@@ -151,16 +151,19 @@ backend:
         comment: "CRITICAL: C-ABI integration failing with Fortran runtime error 'Index 540 of dimension 1 of array n1 above upper bound of 539' in Sensitivity.f90 line 350. This causes backend to hang completely on any endpoint using EI2D library. Array bounds issue in mesh generation or parameter mapping."
 
   - task: "Inversion Workflow with OUT File Generation"
-    implemented: false
+    implemented: true
     working: false
     file: "earthimager_wrapper.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Need to implement actual Fortran inversion calls and generate proper OUT format matching reference toy-14-dd data"
+      - working: false
+        agent: "testing"
+        comment: "Inversion workflow failing due to C-ABI integration issue. API endpoint /api/earthimager/run-inversion times out and causes backend to hang. Cannot test OUT file generation until C-ABI array bounds error is resolved. Backend requires restart after attempting inversion calls."
 
 frontend:
   - task: "File Upload Interface"
