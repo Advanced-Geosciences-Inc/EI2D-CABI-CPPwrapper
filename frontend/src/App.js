@@ -63,9 +63,11 @@ const EarthImagerInterface = () => {
         method: "enhanced_mock_with_uploaded_data", 
         message: "Processing uploaded STG data structure (mock enhanced)",
         parameters: {
-          electrodes: uploadedFiles.stg.data.num_electrodes,
-          measurements: uploadedFiles.stg.data.num_measurements,
-          electrode_spacing: uploadedFiles.stg.data.electrode_spacing,
+          n_electrodes: uploadedFiles.stg.data.num_electrodes,
+          electrode_spacing: uploadedFiles.stg.data.electrode_spacing || forwardParams.electrode_spacing,
+          resistivity: forwardParams.resistivity,
+          conductivity: (1.0 / forwardParams.resistivity).toFixed(4),
+          forward_method: uploadedFiles.ini?.data?.parsed_data?.Forward?.ForwModMeth === "1" ? "FE" : "FD",
           survey_type: uploadedFiles.stg.data.format
         },
         results: {
