@@ -210,8 +210,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Forward Modeling C-ABI Integration"
-    - "Inversion Workflow with OUT File Generation"
+    - "Frontend Inversion Workflow and Results Display"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
