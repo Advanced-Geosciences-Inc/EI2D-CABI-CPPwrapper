@@ -304,7 +304,7 @@ const EarthImagerInterface = () => {
 };
 
 // Parameters Tab Component
-const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParams, onRunForwardModel, onRunRealForwardModel, onGenerateIni, loading, uploadedFiles }) => {
+const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParams, onRunForwardModel, onRunRealForwardModel, onRunInversion, onGenerateIni, loading, uploadedFiles }) => {
   const [paramTab, setParamTab] = useState('forward');
 
   return (
