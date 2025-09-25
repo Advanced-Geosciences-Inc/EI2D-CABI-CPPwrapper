@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/AGI/aws_src/ei2d_port/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

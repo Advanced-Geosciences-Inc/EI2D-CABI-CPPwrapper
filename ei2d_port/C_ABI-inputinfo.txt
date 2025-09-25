@@ -1,0 +1,717 @@
+=== BCFD.f90 ===
+BCFD.f90
+subroutine BCFD(StiffMatrix,NodeX,NodeY,Cond,nBand,iAbscissa)
+
+use GlobalForw
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  integer, intent(in) :: nBand
+  real(Rkind), intent(inout), dimension(1:nBand*gNumNodes) :: StiffMatrix
+  real(Rkind), intent(in), dimension(1:gNumNodes)  :: NodeX, NodeY
+  real(Rkind), intent(in), dimension(1:gNumElem)   :: Cond
+  integer, intent(in) :: iAbscissa
+
+! variables and arrays declared in this subroutine
+
+  integer :: i, k, iPos, iNode, n1, n2, n3, n4, ix, iy
+  real(Rkind) :: Cl, Ct, Cr, Cb, Cp, abscissa2
+  real(Rkind) :: dx1, dx2, dy1, dy2
+
+
+  abscissa2 = gfAbscissa(iAbscissa) * gfAbscissa(iAbscissa)
+
+=== GlobalForw.f90  ===
+
+  module GlobalForw
+  implicit none
+  save
+
+  integer, parameter :: Rkind = 8
+  integer, parameter :: Real4 = 4
+
+  integer :: gNumData              ! Number of data (measurements)
+  integer :: gNumParamX            ! Number of X Parameters in the inverse mesh
+  integer :: gNumParamY            ! Number of Y Parameters in the inverse mesh
+  integer :: gNumParam             ! Number of Parameters in the inverse mesh
+  integer :: gNumElectrodes        ! Number of electrodes used
+  integer :: gNumInfElectrodes     ! Number of infinity electrodes
+  integer :: gNumElemX             ! Number of elements in X direction
+  integer :: gNumElemY             ! Number of elements in Y direction
+  integer :: gNumElem              ! Total number of elements in the mesh
+  integer :: gNumNodeX             ! Number of nodes in X direction
+  integer :: gNumNodeY             ! Number of nodes in Y direction
+  integer :: gNumNodes             ! Total number of nodes in the mesh
+
+  integer :: gnForwModMeth         ! Forward Modeling method  0=FD  1=FE
+  integer :: gnForwSolver          ! Forward matrix equation solver  0=CD  1=CG
+  integer :: gnInvMethod           ! Inversion Method. 0=Forward Only, 1=Least square,
+                                     ! 2=Occam's, 3=Robust, 4=Focusing, 5=Stochastic
+                                     ! 6=Time-elapse, 7=Mixed norm
+  integer :: gnBand                ! half bandwidth of stiffness matrix
+  integer :: gNumAbscissa          ! number of abscissas of numerical integration for inverse FT
+  integer :: gNumDiagonal          ! Number of unique diagonals in stiffness matrix
+  integer :: gnBCType              ! 0 = Dirichlet, 1 = mixed
+  integer :: gnForwCGIter          ! max number of iteration of forward CG (200)
+  real(Rkind) :: gfForwCGResid     ! forward CG stop residual (1d-6)
+
+! global arrays
+  real(Rkind), allocatable, dimension(:) :: &
+               gfAbscissa,  &      ! Numerical integration points
+               gfFTWeight,  &      ! Numerical integration weights
+               gfStiff             ! 1-D Stiffness Matrix of compact and efficient storage
+
+! Eta factor for mixed B.C.
+  real(Rkind), allocatable, dimension(:, :) :: gfEtaLeft, gfEtaRight, gfEtaBottom  
+
+! Array to store complete forward solution at a single abscissa. It is 
+! updated from abscissa to abscissa. For efficient access, I use a 1D array
+!  real(RKind), allocatable, dimension(:) :: gfVoverIOld 
+  real(RKind), allocatable, dimension(:) :: gfVoverI 
+
+  end module GlobalForw
+
+=== BCFE.f90 ===
+subroutine BCFE(StiffMatrix,NodeX,NodeY,Cond,nBand,iAbscissa)
+
+  use GlobalForw
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  integer, intent(in) :: nBand  
+  real(Rkind), intent(inout), dimension(1:nBand*gNumNodes) :: StiffMatrix
+  real(Rkind), intent(in), dimension(1:gNumNodes)  :: NodeX, NodeY
+  real(Rkind), intent(in), dimension(1:gNumElem)   :: Cond
+  integer, intent(in) :: iAbscissa
+
+! variables and arrays declared in this subroutine
+
+  integer :: i, j, k, n, iPos
+  real(Rkind) :: tmp
+
+=== Cholesky.f90 ===
+subroutine Decompose(A)
+
+  use GlobalForw
+  implicit none
+
+  real(Rkind), intent(inout), dimension(1:gNumNodes*gnBand) :: A
+  integer :: i, j, k, jBegin, jPos, kPos, band 
+  real(Rkind) :: sum, tiny
+
+=== FindAbscissa ===
+
+subroutine FindAbscissa(ForwAccuracy, MinTxRxSep, MaxTxRxSep)
+
+  use GlobalForw, only : Rkind,gNumAbscissa,gfAbscissa,gfFTWeight
+  implicit none
+
+  integer, intent(in)     :: ForwAccuracy
+  real(Rkind), intent(in) :: MinTxRxSep, MaxTxRxSep
+  real(Rkind), parameter  :: Kfactor = 2.5
+  
+  real(Rkind) :: Kmin, Kmax
+  integer :: i, NoSpace
+
+=== ForwardFD.f90 ===
+
+subroutine ForwardFD(CallBackForw, NodeX, NodeY, Cond, VIcalc, Jacobian, ElecNodeID, &
+                       StingCMD, ParamX1, ParamX2, ParamY1, ParamY2, InfElec, &
+                       GetJacobian)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: ForwardFD
+!DEC$ ATTRIBUTES ALIAS: "forwardfd" :: ForwardFD
+
+  use GlobalForw
+  implicit none
+
+  interface
+    subroutine CallBackForw(CallBackStatus)
+       !DEC$ ATTRIBUTES C :: CallBackForw
+       integer, intent(inout), dimension(0:1) :: CallBackStatus
+    end subroutine
+  end interface
+
+  external CallBackForw
+
+
+
+! variables and arrays passed from Delphi GUI
+
+  integer :: GetOffsetIndex
+  logical :: IsInfElectrode
+  real(Rkind), intent(in),  dimension(1:gNumNodes) :: NodeX, NodeY
+  real(Rkind), intent(in),  dimension(1:gNumElem)  :: Cond
+  real(Rkind), intent(out), dimension(1:gNumData)  :: VIcalc
+  real(Rkind), intent(out), dimension(1:gNumData*gNumParam) :: Jacobian
+  integer, intent(in), dimension(1:gNumElectrodes) :: ElecNodeID
+  integer, intent(in), dimension(1:gNumData*4)     :: StingCMD
+  integer, intent(in), dimension(1:gNumParamX) :: ParamX1,ParamX2
+  integer, intent(in), dimension(1:gNumParamY) :: ParamY1,ParamY2
+  integer, intent(in), dimension(1:gNumInfElectrodes) :: InfElec
+  integer, intent(in) :: GetJacobian
+
+! variables and arrays declared in this subroutine
+
+  integer, dimension(0:1) :: CallBackStatus
+  integer :: i, j, k, n, kk, iAbscissa, iNode, iData 
+  integer :: iElectrode, iPos, iNodeX, iNodeY
+  integer :: PosAM, PosAN, PosBM, PosBN, nBand, StiffLen
+  real(Rkind) :: abscissa, FTweight
+  real(Rkind), allocatable, dimension(:) :: StiffMatrix
+  integer, allocatable, dimension(:) :: IndexOffset
+  real(Rkind) :: Cl, Ct, Cp   ! Left, Top and Self coupling coefficients
+  real(Rkind) :: vAM, vAN, vBM, vBN
+
+  real(Rkind), allocatable, dimension(:)  :: dx, dy, VoverIft, DiagStiff, S
+
+=== ForwardFE.f90 ===
+subroutine ForwardFE(CallBackForw, NodeX, NodeY, Cond, VIcalc, Jacobian,  & 
+                       ElecNodeID, StingCMD, ParamX1, ParamX2, ParamY1,     &
+                       ParamY2,InfElec, CenterNodeX, CenterNodeY, ElemArea, &
+                       GetJacobian)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: ForwardFE
+!DEC$ ATTRIBUTES ALIAS: "forwardfe" :: ForwardFE
+
+  use GlobalForw
+  implicit none
+
+  interface
+    subroutine CallBackForw(CallBackStatus)
+       !DEC$ ATTRIBUTES C :: CallBackForw
+       integer, intent(inout), dimension(0:1) :: CallBackStatus
+    end subroutine
+  end interface
+
+  external CallBackForw
+
+
+! variables and arrays passed from Delphi GUI
+
+  integer :: GetOffsetIndex
+  logical :: IsInfElectrode
+  real(Rkind), intent(in),  dimension(1:gNumNodes) :: NodeX, NodeY
+  real(Rkind), intent(in),  dimension(1:gNumElem)  :: Cond
+  real(Rkind), intent(out), dimension(1:gNumData)  :: VIcalc
+  real(Rkind), intent(out), dimension(1:gNumData*gNumParam) :: Jacobian
+  integer, intent(in), dimension(1:gNumElectrodes) :: ElecNodeID
+  integer, intent(in), dimension(1:gNumData*4)     :: StingCMD
+  integer, intent(in), dimension(1:gNumParamX) :: ParamX1,ParamX2
+  integer, intent(in), dimension(1:gNumParamY) :: ParamY1,ParamY2
+  real(Rkind), intent(in), dimension(1:gNumElem)   :: CenterNodeX, CenterNodeY
+  real(Rkind), intent(in), dimension(1:gNumElem*4) :: ElemArea
+  integer, intent(in), dimension(1:gNumInfElectrodes) :: InfElec
+  integer, intent(in) :: GetJacobian
+
+! variables and arrays declared in this subroutine
+
+  integer, dimension(0:1) :: CallBackStatus
+  real(Rkind), parameter :: PI = 3.1415926
+  integer :: i, j, k, n, kk, iAbscissa, iNode, iData 
+  integer :: iElectrode, iPos, iElemX, iElemY
+  integer :: PosAM, PosAN, PosBM, PosBN, nBand, StiffLen
+  real(Rkind) :: abscissa, abscix, FTweight
+  integer, dimension(1:4) :: LocalNodes
+  real(Rkind), dimension(1:4,1:4) :: ElemStiff
+  real(Rkind), allocatable, dimension(:) :: StiffMatrix, ElemStiffAll
+  integer, allocatable, dimension(:) :: IndexOffset
+  real(Rkind) :: vAM, vAN, vBM, vBN
+
+  real(Rkind), allocatable, dimension(:)  :: VoverIft, DiagStiff, S
+
+=== ForwPCG.f90 ===
+
+subroutine ForwPCG(A, x, b, StiffLen)
+  USE GlobalForw
+  implicit none
+
+  integer, intent(in) :: StiffLen
+  real(Rkind), intent(in),    dimension(1:StiffLen)  :: A
+  real(Rkind), intent(in),    dimension(1:gNumNodes) :: b
+  real(Rkind), intent(inout), dimension(1:gNumNodes) :: x
+!
+  real(Rkind) :: dot1,dot2, pAp, alpha, beta
+  real(Rkind), allocatable, dimension(:) :: r,p,precond,ApVec
+  real(Rkind) :: omega, residual           
+  integer :: iter
+
+=== ForwUtils.f90 ===
+
+function GetOffsetIndex(k,IndexOffset)
+  use GlobalForw, only : gNumDiagonal
+  implicit none
+
+  integer :: GetOffsetIndex
+  integer, intent(in) :: k
+  integer, intent(in), dimension(1:gNumDiagonal) :: IndexOffset
+  integer :: i
+
+=== FreeMemForward.f90 ===
+
+subroutine FreeMemForward
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: FreeMemForward
+!DEC$ ATTRIBUTES ALIAS: "freememforward" :: FreeMemForward
+
+  use GlobalForw
+  implicit none
+
+  if (allocated(gfAbscissa)) deallocate(gfAbscissa)
+  if (allocated(gfFTWeight)) deallocate(gfFTWeight)
+  if (allocated(gfStiff)) deallocate(gfStiff)
+  if (allocated(gfVoverI)) deallocate(gfVoverI)
+!  if (allocated(gfVoverIold)) deallocate(gfVoverIold)
+  if (allocated(gfEtaLeft)) deallocate(gfEtaLeft)
+  if (allocated(gfEtaRight)) deallocate(gfEtaRight)
+  if (allocated(gfEtaBottom)) deallocate(gfEtaBottom)
+
+  end subroutine FreeMemForward
+
+=== GlobalForw.f90 ===
+
+  module GlobalForw
+  implicit none
+  save
+
+  integer, parameter :: Rkind = 8
+  integer, parameter :: Real4 = 4
+
+  integer :: gNumData              ! Number of data (meausrements)
+  integer :: gNumParamX            ! Number of X Parameters in the inverse mesh
+  integer :: gNumParamY            ! Number of Y Parameters in the inverse mesh
+  integer :: gNumParam             ! Number of Parameters in the inverse mesh
+  integer :: gNumElectrodes        ! Number of electrodes used
+  integer :: gNumInfElectrodes     ! Number of infinity electrodes
+  integer :: gNumElemX             ! Number of elements in X direction
+  integer :: gNumElemY             ! Number of elements in Y direction
+  integer :: gNumElem              ! Total number of elements in the mesh
+  integer :: gNumNodeX             ! Number of nodes in X direction
+  integer :: gNumNodeY             ! Number of nodes in Y direction
+  integer :: gNumNodes             ! Total number of nodes in the mesh
+
+  integer :: gnForwModMeth         ! Forward Modeling method  0=FD  1=FE
+  integer :: gnForwSolver          ! Forward matrix equation solver  0=CD  1=CG
+  integer :: gnInvMethod           ! Inversion Method. 0=Forward Only, 1=Least square,
+                                     ! 2=Occam's, 3=Robust, 4=Focusing, 5=Stochastic
+                                     ! 6=Time-elapse, 7=Mixed norm
+  integer :: gnBand                ! half bandwidth of stiffness matrix
+  integer :: gNumAbscissa          ! number of abscissas of numerical integration for inverse FT
+  integer :: gNumDiagonal          ! Number of unique diagonals in stiffness matrix
+  integer :: gnBCType              ! 0 = Dirichlet, 1 = mixed
+  integer :: gnForwCGIter          ! max number of iteration of forward CG (200)
+  real(Rkind) :: gfForwCGResid     ! forward CG stop residual (1d-6)
+
+! global arrays
+  real(Rkind), allocatable, dimension(:) :: &
+               gfAbscissa,  &      ! Numerical integration points
+               gfFTWeight,  &      ! Numerical integration weights
+               gfStiff             ! 1-D Stiffness Matrix of compact and efficient storage
+
+! Eta factor for mixed B.C.
+  real(Rkind), allocatable, dimension(:, :) :: gfEtaLeft, gfEtaRight, gfEtaBottom  
+
+! Array to store complete forward solution at a single abscissa. It is 
+! updated from abscissa to abscissa. For efficient access, I use a 1D array
+!  real(RKind), allocatable, dimension(:) :: gfVoverIOld 
+  real(RKind), allocatable, dimension(:) :: gfVoverI 
+
+  end module GlobalForw
+
+=== GlobalForw.f90 ===
+
+  module GlobalForw
+  implicit none
+  save
+
+  integer, parameter :: Rkind = 8
+  integer, parameter :: Real4 = 4
+
+  integer :: gNumData              ! Number of data (meausrements)
+  integer :: gNumParamX            ! Number of X Parameters in the inverse mesh
+  integer :: gNumParamY            ! Number of Y Parameters in the inverse mesh
+  integer :: gNumParam             ! Number of Parameters in the inverse mesh
+  integer :: gNumElectrodes        ! Number of electrodes used
+  integer :: gNumInfElectrodes     ! Number of infinity electrodes
+  integer :: gNumElemX             ! Number of elements in X direction
+  integer :: gNumElemY             ! Number of elements in Y direction
+  integer :: gNumElem              ! Total number of elements in the mesh
+  integer :: gNumNodeX             ! Number of nodes in X direction
+  integer :: gNumNodeY             ! Number of nodes in Y direction
+  integer :: gNumNodes             ! Total number of nodes in the mesh
+
+  integer :: gnForwModMeth         ! Forward Modeling method  0=FD  1=FE
+  integer :: gnForwSolver          ! Forward matrix equation solver  0=CD  1=CG
+  integer :: gnInvMethod           ! Inversion Method. 0=Forward Only, 1=Least square,
+                                     ! 2=Occam's, 3=Robust, 4=Focusing, 5=Stochastic
+                                     ! 6=Time-elapse, 7=Mixed norm
+  integer :: gnBand                ! half bandwidth of stiffness matrix
+  integer :: gNumAbscissa          ! number of abscissas of numerical integration for inverse FT
+  integer :: gNumDiagonal          ! Number of unique diagonals in stiffness matrix
+  integer :: gnBCType              ! 0 = Dirichlet, 1 = mixed
+  integer :: gnForwCGIter          ! max number of iteration of forward CG (200)
+  real(Rkind) :: gfForwCGResid     ! forward CG stop residual (1d-6)
+
+! global arrays
+  real(Rkind), allocatable, dimension(:) :: &
+               gfAbscissa,  &      ! Numerical integration points
+               gfFTWeight,  &      ! Numerical integration weights
+               gfStiff             ! 1-D Stiffness Matrix of compact and efficient storage
+
+! Eta factor for mixed B.C.
+  real(Rkind), allocatable, dimension(:, :) :: gfEtaLeft, gfEtaRight, gfEtaBottom  
+
+! Array to store complete forward solution at a single abscissa. It is 
+! updated from abscissa to abscissa. For efficient access, I use a 1D array
+!  real(RKind), allocatable, dimension(:) :: gfVoverIOld 
+  real(RKind), allocatable, dimension(:) :: gfVoverI 
+
+  end module GlobalForw
+
+=== GlobalInv.f90 ===
+
+  module GlobalInv
+  implicit none
+  save
+
+  integer, parameter :: Rkind = 8
+  real(Rkind), parameter :: gcTinyReal = 1.0D-19
+  real(Rkind), parameter :: gcStopResidual = 1.0D-3    ! nonlinear CG loop
+! upper limit of IP positivity constraint, the lower limit is set to 0
+  real(Rkind), parameter :: gcMaxIP = 1D0              
+
+  integer :: gNumData              ! Number of data (meausrements)
+  integer :: gNumElemX             ! Number of elements in X (horizontal) direction
+  integer :: gNumElemY             ! Number of elements in Y (vertical) direction
+  integer :: gNumParamX            ! Number of X Parameters in the inverse mesh
+  integer :: gNumParamY            ! Number of Y Parameters in the inverse mesh
+  integer :: gNumParam             ! Number of Parameters in the inverse mesh
+  integer :: gnMaxNumIterInvCG     ! Max number of iteration of inverse CG solver
+
+  ! Inversion Method. 0=Forward Only, 1=Least square,
+  ! 2=Occam's, 3=Robust, 4=Focusing, 5=Time-elapse, 6=Mixed norm
+  integer :: gnInvMethod           
+  integer :: gnIPInvMethod           
+  integer :: gnIPPosMethod         ! IP Positivity Constraint method 0=No, 1=Yes
+  integer :: gnRobustMethod        ! 0 = Lp, 1 = M-Est, 2 = Ekblom, 3 = Focusing
+
+  real(Rkind) :: gfModResoFactor   ! This factor is intended to produce a uniform model resolution
+  real(Rkind) :: gfEpsilonD        ! Square of a small number in Ekblom robust algorithm, D = Data
+  real(Rkind) :: gfEpsilonM        ! Square of a small number in Ekblom robust algorithm, D = Model
+
+! global arrays
+  real(Rkind), allocatable, dimension(:) :: gfDiagPrecond  ! Diagonal preconditioner of Inv PCG
+
+  end module GlobalInv
+
+=== InitForwGlobals.f90 ===
+
+  subroutine InitForwGlobals(NumData, NumElectrodes, NumInfElectrodes, NumNodeX,  &
+                             NumNodeY, ForwModMeth, ForwSolver, InvMethod,        &
+                             ForwAccuracy, ForwCGIter, BCType, ForwCGResid,       &
+                             MinTxRxSep, MaxTxRxSep)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InitForwGlobals
+!DEC$ ATTRIBUTES ALIAS: "initforwglobals" :: InitForwGlobals
+
+  use GlobalForw
+  implicit none
+
+  integer, intent(in) :: NumData, NumElectrodes, NumNodeX, NumNodeY
+  integer, intent(in) :: ForwModMeth, ForwSolver, InvMethod, ForwAccuracy
+  integer, intent(in) :: ForwCGIter, BCType, NumInfElectrodes
+  real(Rkind), intent(in) :: ForwCGResid, MinTxRxSep, MaxTxRxSep
+
+! global variables: array dimensions
+  gNumData          = NumData 
+  gNumElectrodes    = NumElectrodes
+  gNumInfElectrodes = NumInfElectrodes
+  gNumNodeX         = NumNodeX
+  gNumNodeY         = NumNodeY
+  gnForwModMeth     = ForwModMeth
+  gnForwSolver      = ForwSolver
+  gnInvMethod       = InvMethod
+  
+  gNumNodes         = gNumNodeX * gNumNodeY
+  gNumElemX         = gNumNodeX - 1
+  gNumElemY         = gNumNodeY - 1
+  gNumElem          = gNumElemX * gNumElemY
+  gnForwCGIter      = ForwCGIter
+  gnBCType          = BCType
+  gfForwCGResid     = ForwCGResid
+  
+  if (gnForwModMeth == 0) then          !  Finite difference method
+     gNumDiagonal = 3
+     gnBand       = gNumNodeY + 1
+  else if (gnForwModMeth == 1) then     !  Finite element method
+     gNumDiagonal = 5
+     gnBand       = gNumNodeY + 2
+  end if
+
+  call SetAbscissa(ForwAccuracy, MinTxRxSep)
+!  call SetAbscissa1(ForwAccuracy, MinTxRxSep, MaxTxRxSep)
+!  call FindAbscissa(ForwAccuracy, MinTxRxSep, MaxTxRxSep)
+
+  return
+  end subroutine InitForwGlobals
+
+! -------------------------------------------------------------------------------
+  subroutine SetNumParamForward(NumParamX, NumParamY)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: SetNumParamForward
+!DEC$ ATTRIBUTES ALIAS: "setnumparamforward" :: SetNumParamForward
+
+  use GlobalForw
+  implicit none
+
+  integer, intent(in) :: NumParamX, NumParamY
+
+  gNumParamX = NumParamX
+  gNumParamY = NumParamY
+  gNumParam = NumParamX * NumParamY
+
+  return
+  end subroutine SetNumParamForward
+
+=== InitInvGlobals.f90 ===
+
+subroutine InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, InvMethod,   &
+              IPInvMethod, MaxNumIterInvCG, IPPosMeth, ModResoFactor, EpsilonD, EpsilonM)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InitInvGlobals
+!DEC$ ATTRIBUTES ALIAS: "initinvglobals" :: InitInvGlobals
+
+  use GlobalInv
+  implicit none
+
+  integer, intent(in) :: NumData, NumElemX, NumElemY, NumParamX, NumParamY, MaxNumIterInvCG
+  integer, intent(in) :: InvMethod, IPInvMethod, IPPosMeth
+  real(Rkind), intent(in) :: ModResoFactor, EpsilonD, EpsilonM
+
+! global variables: array dimensions
+  gNumData           = NumData 
+  gNumParamX         = NumParamX
+  gNumParamY         = NumParamY
+  gNumParam          = NumParamX * NumParamY
+  gNumElemX          = NumElemX
+  gNumElemY          = NumElemY
+  gnInvMethod        = InvMethod
+  gnIPInvMethod      = IPInvMethod
+  gnMaxNumIterInvCG  = MaxNumIterInvCG
+  gnIPPosMethod      = IPPosMeth
+  gfModResoFactor    = ModResoFactor
+  gfEpsilonD         = abs(EpsilonD)
+  gfEpsilonM         = abs(EpsilonM)
+  gnRobustMethod     = 2  
+
+  return
+  end subroutine InitInvGlobals
+
+=== InvPCGFocus.f90 ===
+
+subroutine InvPCGFocus(ObsData, CalcData, DataWeight, LogCond, PriorModel,  &
+                      ModelUpdate, Jacobian, ModelWeight0, ModelWeight,       &
+                      Lagrange, ResIPFlag)
+
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InvPCGFocus
+!DEC$ ATTRIBUTES ALIAS: "invpcgfocus" :: InvPCGFocus
+
+  use GlobalInv
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  real(Rkind), intent(out), dimension(1:gNumParam) :: ModelUpdate
+  real(Rkind), intent(in), dimension(1:gNumData)  :: ObsData, CalcData, DataWeight
+  real(Rkind), intent(in), dimension(1:gNumParam) :: LogCond, PriorModel, ModelWeight0
+  real(Rkind), intent(in), dimension(1:gNumData*gNumParam) :: Jacobian
+  real(Rkind), intent(out), dimension(1:gNumParam) :: ModelWeight
+  real(Rkind), intent(in) :: Lagrange
+  integer, intent(in) :: ResIPFlag
+
+! local variables
+
+  integer :: i, k, iCG
+  real(Rkind) :: rVecNorm, rVecNorm0, alpha, beta
+  real(Rkind) :: rtrOld, rtrNew
+  real(Rkind), dimension(1:gNumData)  :: DataVec
+  real(Rkind), dimension(1:gNumParam) :: rVec, pVec, zVec, ApVec
+
+=== InvPCGLS.f90 ===
+
+subroutine InvPCGLS(ObsData, CalcData, DataWeight, ModelParam, PriorModel,    &
+                    ModelUpdate, Jacobian, DampingFactor, ResIPFlag, IterNum)
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InvPCGLS
+!DEC$ ATTRIBUTES ALIAS: "invpcgls" :: InvPCGLS
+
+  use GlobalInv
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  real(Rkind), intent(out), dimension(1:gNumParam) :: ModelUpdate
+  real(Rkind), intent(in), dimension(1:gNumData)  :: ObsData, CalcData, DataWeight
+  real(Rkind), intent(in), dimension(1:gNumParam) :: ModelParam, PriorModel
+  real(Rkind), intent(in), dimension(1:gNumData*gNumParam) :: Jacobian
+  real(Rkind), intent(in) :: DampingFactor
+  integer, intent(in) :: ResIPFlag, IterNum
+
+! local variables
+
+  integer :: i, k, iCG
+  real(Rkind) :: rVecNorm, rVecNorm0, alpha, beta
+  real(Rkind) :: rtrOld, rtrNew
+  real(Rkind), allocatable, dimension(:) :: DataVec, DataWeight2
+  real(Rkind), allocatable, dimension(:) :: rVec, pVec, zVec, ApVec, ModelDamping
+
+=== InvPCGOC ===
+
+subroutine InvPCGOC(ObsData, CalcData, DataWeight, ModelParam, PriorModel,    &
+                      ModelUpdate, Jacobian, RoughX0, RoughY0, RoughX, RoughY,  &
+                      Lagrange, DampFactor, ResIPFlag, IterNum)
+
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InvPCGOC
+!DEC$ ATTRIBUTES ALIAS: "invpcgoc" :: InvPCGOC
+!DEC$ ATTRIBUTES C, DLLIMPORT :: RoughV0
+!DEC$ ATTRIBUTES ALIAS: "roughv0" :: RoughV0
+
+  use GlobalInv
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  real(Rkind), intent(out), dimension(1:gNumParam) :: ModelUpdate
+  real(Rkind), intent(in), dimension(1:gNumData)   :: ObsData, CalcData, DataWeight
+  real(Rkind), intent(in), dimension(1:gNumParam)  :: ModelParam, PriorModel
+  real(Rkind), intent(in), dimension(1:gNumData*gNumParam) :: Jacobian
+  real(Rkind), intent(in), dimension(1:gNumParam) :: RoughX0, RoughY0
+  real(Rkind), intent(out), dimension(1:gNumParam) :: RoughX, RoughY
+  real(Rkind), intent(in) :: Lagrange, DampFactor
+  integer, intent(in) :: IterNum
+  integer, intent(in) :: ResIPFlag   ! 0=Res, 1=NonlinearIP, 2=LinearIPPos
+
+! local variables
+
+  integer :: i, k, iCG
+  logical bPos
+  real(Rkind) :: rVecNorm, rVecNorm0, alpha, beta
+  real(Rkind) :: rtrOld, rtrNew
+  real(Rkind), allocatable, dimension(:) :: DataVec, DataWeight2
+  real(Rkind), allocatable, dimension(:) :: rVec, pVec, zVec, ApVec, DampVec, PosVec
+
+=== InvPCGRobust ===
+
+subroutine InvPCGRobust(ObsData, CalcData, DataWeight, ModelParam, PriorModel,   &
+                          ModelUpdate, Jacobian, RoughX0, RoughY0, RoughX, RoughY,  &
+                          Lagrange, ResIPFlag, IterNum)
+
+
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: InvPCGRobust
+!DEC$ ATTRIBUTES ALIAS: "invpcgrobust" :: InvPCGRobust
+!DEC$ ATTRIBUTES C, DLLIMPORT :: RoughV0
+!DEC$ ATTRIBUTES ALIAS: "roughv0" :: RoughV0
+
+  use GlobalInv
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  real(Rkind), intent(out), dimension(1:gNumParam) :: ModelUpdate
+  real(Rkind), intent(in), dimension(1:gNumData)  :: ObsData, CalcData, DataWeight
+  real(Rkind), intent(in), dimension(1:gNumParam) :: ModelParam, PriorModel
+  real(Rkind), intent(in), dimension(1:gNumData*gNumParam) :: Jacobian
+  real(Rkind), intent(in), dimension(1:gNumParam) :: RoughX0, RoughY0
+  real(Rkind), intent(out), dimension(1:gNumParam) :: RoughX, RoughY
+  real(Rkind), intent(in) :: Lagrange
+  integer, intent(in) :: ResIPFlag, IterNum
+
+! local variables
+
+  integer :: i, k, iCG, nospace
+  real(Rkind) :: rVecNorm, rVecNorm0, alpha, beta, gamma
+  real(Rkind) :: rtrOld, rtrNew, EpsilonD, EpsilonM
+
+  real(Rkind), allocatable, dimension(:) :: DataVec, ReweightData, DataVec2
+  real(Rkind), allocatable, dimension(:) :: rVec, pVec, zVec, ApVec, DampVec
+  ! R matrices in Farquharson (SEGJ 2003) R_i, i = s, x, y
+  real(Rkind), allocatable, dimension(:) :: ReweightMx, ReweightMy, ReweightMs
+
+=== JacobFE ===
+
+subroutine JacobFE(Jacobian, StingCMD, ParamX1, ParamX2, ParamY1, ParamY2,  &
+                      weight, ElemStiffAll)
+
+  use GlobalForw
+  implicit none
+
+  real(Rkind), intent(inout), dimension(1:gNumData*gNumParam) :: Jacobian
+  integer, intent(in), dimension(1:gNumData*4)     :: StingCMD
+  integer, intent(in), dimension(1:gNumParamX) :: ParamX1,ParamX2
+  integer, intent(in), dimension(1:gNumParamY) :: ParamY1,ParamY2
+  real(Rkind), intent(inout), dimension(1:gNumElem*16) :: ElemStiffAll
+  real(Rkind), intent(in) ::  weight
+
+  integer :: iParam, iData, iElemX, iElemY, iElem, iJacob0, iJacob
+  integer :: i, j, k, iPos, A, B, M, N, ipx, ipy
+  integer ::  LocalNodes(4)
+  real(Rkind), allocatable, dimension(:, :) :: Vab, Vmn
+
+=== StiffnessFE.f90 ===
+
+subroutine StiffnessFE(NodeX, NodeY, Conductivity, ReducedStiff, abscix,     &
+                         iElemX, iElemY, LocalNodes, CenterNodeX, CenterNodeY, &
+                         ElemArea)
+
+  use GlobalForw
+  implicit none
+
+  integer, intent(in) :: iElemX, iElemY
+  real(Rkind), intent(in), dimension(1:gNumNodes) :: NodeX, NodeY
+  real(Rkind), intent(in), dimension(1:gNumElem) :: Conductivity
+  real(Rkind), intent(in) :: abscix
+  integer, intent(out) :: LocalNodes(1:4)
+  real(Rkind), intent(in), dimension(1:gNumElem)   :: CenterNodeX, CenterNodeY
+  real(Rkind), intent(in), dimension(1:gNumElem*4) :: ElemArea
+  real(Rkind), intent(out), dimension(1:4,1:4) :: ReducedStiff
+
+  real(Rkind) :: tmp, tmp1, ElemStiff(1:5,1:5),b(1:3),c(1:3)
+  integer     :: iElem, i, j, k, m, n1, n2
+
+=== UpdateJacobian.f90 ===
+
+subroutine UpdateJacobian(p, DataDiff, Jacobian) 
+
+!DEC$ ATTRIBUTES C, DLLEXPORT :: UpdateJacobian
+!DEC$ ATTRIBUTES ALIAS: "updatejacobian" :: UpdateJacobian
+
+  use GlobalInv
+  implicit none
+
+! variables and arrays passed from Delphi GUI
+
+  real(Rkind), intent(inout), dimension(1:gNumData*gNumParam) :: Jacobian
+  real(Rkind), intent(in), dimension(1:gNumParam) :: p       ! Model update
+  real(Rkind), intent(in), dimension(1:gNumData)  :: DataDiff
+
+
+
+===== Not included files =====
+InvUtils.f90
+PrepMixBC.f90
+Roughness.f90
+SetAbscissa.f90
+
+
+
+
+
+
+
+
+
