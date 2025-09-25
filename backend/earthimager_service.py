@@ -124,24 +124,65 @@ class EarthImagerService:
             raise HTTPException(status_code=400, detail=f"INI parsing error: {str(e)}")
     
     async def process_stg_file(self, stg_content: str) -> Dict[str, Any]:
-        """Process uploaded STG file"""
+        """Process uploaded STG file - Real AGI format"""
         try:
             parsed_stg = STGParser.parse_stg(stg_content)
             
             return {
                 "success": True,
+                "format": parsed_stg.get("format"),
+                "header_info": parsed_stg.get("header_info", {}),
                 "num_electrodes": parsed_stg["num_electrodes"],
-                "num_measurements": parsed_stg["num_data"],
-                "survey_preview": parsed_stg["abmn_data"][:10],  # First 10 measurements
-                "electrode_range": {
-                    "min": min(min(row) for row in parsed_stg["abmn_data"]) if parsed_stg["abmn_data"] else 1,
-                    "max": max(max(row) for row in parsed_stg["abmn_data"]) if parsed_stg["abmn_data"] else 1
-                },
+                "num_measurements": parsed_stg["num_measurements"],
+                "electrode_spacing": parsed_stg.get("electrode_spacing", 1.0),
+                "measurement_preview": parsed_stg["measurements"][:5],  # First 5 measurements
+                "voltage_range": parsed_stg.get("voltage_range", {}),
+                "resistivity_range": parsed_stg.get("resistivity_range", {}),
+                "electrodes": parsed_stg.get("electrodes", []),
                 "parsed_data": parsed_stg
             }
             
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"STG parsing error: {str(e)}")
+    
+    async def process_mdl_file(self, mdl_content: str) -> Dict[str, Any]:
+        """Process uploaded MDL file"""
+        try:
+            parsed_mdl = MDLParser.parse_mdl(mdl_content)
+            
+            return {
+                "success": True,
+                "format": parsed_mdl.get("format"),
+                "sections": parsed_mdl["sections"],
+                "electrode_count": parsed_mdl["electrode_count"],
+                "measurement_count": parsed_mdl["measurement_count"],
+                "geometry_preview": parsed_mdl["geometry"][:10],  # First 10 electrodes
+                "commands_preview": parsed_mdl["commands"][:5],   # First 5 ABMN commands
+                "model_info": parsed_mdl.get("model_info", {}),
+                "parsed_data": parsed_mdl
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"MDL parsing error: {str(e)}")
+    
+    async def process_mod_file(self, mod_content: str) -> Dict[str, Any]:
+        """Process uploaded MOD file - 3-layer resistivity model"""
+        try:
+            parsed_mod = MODParser.parse_mod(mod_content)
+            
+            return {
+                "success": True,
+                "format": parsed_mod.get("format"),
+                "background_resistivity": parsed_mod["background_resistivity"],
+                "total_blocks": parsed_mod["total_blocks"],
+                "layers": parsed_mod.get("layers", {}),
+                "model_summary": parsed_mod.get("model_summary", {}),
+                "resistivity_preview": parsed_mod["resistivity_blocks"][:10],  # First 10 blocks
+                "parsed_data": parsed_mod
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"MOD parsing error: {str(e)}")
     
     async def generate_ini_config(self, params: Dict[str, Any]) -> str:
         """Generate INI configuration from web parameters"""
