@@ -186,10 +186,11 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Forward Modeling C-ABI Integration"
     - "Inversion Workflow with OUT File Generation"
-    - "Backend Integration with toy-14-dd Reference Data"
   stuck_tasks:
     - "Forward Modeling C-ABI Integration"
+    - "Inversion Workflow with OUT File Generation"
   test_all: false
   test_priority: "high_first"
 
