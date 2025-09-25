@@ -45,6 +45,82 @@ const EarthImagerInterface = () => {
     }
   };
 
+  const runInversion = async () => {
+    if (!uploadedFiles.ini || !uploadedFiles.stg) {
+      setStatus('Error: Please upload both INI and STG files for inversion');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      setStatus('Starting EarthImager 2D inversion workflow...');
+      
+      // Create form data with the actual file contents
+      // Note: In a full implementation, we'd need to store original file contents
+      const formData = new FormData();
+      
+      // For demonstration, create basic files from the parsed data
+      const iniContent = Object.entries(uploadedFiles.ini.data.parsed_data || {})
+        .map(([section, values]) => {
+          const lines = [`[${section}]`];
+          Object.entries(values).forEach(([key, value]) => {
+            lines.push(`${key}=${value}`);
+          });
+          lines.push('');
+          return lines.join('\n');
+        }).join('\n');
+      
+      const iniBlob = new Blob([iniContent], { type: 'text/plain' });
+      const stgBlob = new Blob(['Mock STG content for inversion'], { type: 'text/plain' });
+      
+      formData.append('ini_file', iniBlob, uploadedFiles.ini.name);
+      formData.append('stg_file', stgBlob, uploadedFiles.stg.name);
+
+      const response = await axios.post(`${API}/earthimager/run-inversion`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults(response.data);
+      setStatus(`Inversion completed: ${response.data.parameters?.final_iteration} iterations, RMS: ${response.data.parameters?.final_rms?.toFixed(3)}%`);
+    } catch (error) {
+      setStatus(`Inversion error: ${error.response?.data?.detail || error.message}`);
+      console.error('Inversion error:', error);
+    }
+    setLoading(false);
+  };
+
+  const downloadOutFile = async () => {
+    if (!results?.out_file?.content) {
+      setStatus('No OUT file available for download');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('content', results.out_file.content);
+      
+      const response = await axios.post(`${API}/earthimager/download-out-file`, formData, {
+        responseType: 'blob'
+      });
+      
+      // Download the file
+      const blob = new Blob([response.data], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'earthimager_results.out';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setStatus('OUT file downloaded successfully');
+    } catch (error) {
+      setStatus(`Download error: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
   const runRealForwardModel = async () => {
     if (!uploadedFiles.ini || !uploadedFiles.stg) {
       setStatus('Error: Please upload both INI and STG files for real forward modeling');
