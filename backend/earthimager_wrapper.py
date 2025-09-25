@@ -152,11 +152,11 @@ class EI2DWrapper:
             return {
                 "success": True,
                 "nData": nData,
-                "VI": VI.tolist(),
+                "VI": [float(x) if np.isfinite(x) else 0.0 for x in VI],
                 "stingCMD": stingCMD.reshape(-1, 4).tolist(),
-                "nodeX": nodeX.tolist(),
-                "nodeY": nodeY.tolist(),
-                "conductivity": cond.tolist(),
+                "nodeX": [float(x) for x in nodeX],
+                "nodeY": [float(y) for y in nodeY],
+                "conductivity": [float(c) for c in cond],
                 "message": f"Forward modeling completed successfully. {nData} data points computed."
             }
             
