@@ -183,8 +183,10 @@ const EarthImagerInterface = () => {
             iniParams={iniParams}
             setIniParams={setIniParams}
             onRunForwardModel={runForwardModel}
+            onRunRealForwardModel={runRealForwardModel}
             onGenerateIni={generateIniFile}
             loading={loading}
+            uploadedFiles={uploadedFiles}
           />
         )}
 
