@@ -256,7 +256,7 @@ class EI2DRealDataProcessor:
             print(f"Processing: {num_electrodes} electrodes, {num_measurements} measurements")
             print(f"Forward method: {'FE' if forw_mod_meth == 1 else 'FD'}")
             
-            if self.lib:
+            if self.lib and False:  # Temporarily disable C-ABI for debugging
                 # Use real EI2D C-ABI
                 return self._run_real_forward_modeling(
                     electrodes, measurements, forw_mod_meth, forw_solver, 
