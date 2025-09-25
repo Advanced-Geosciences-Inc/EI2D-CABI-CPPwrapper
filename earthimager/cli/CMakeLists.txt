@@ -34,7 +34,7 @@ if(OpenMP_FOUND)
 endif()
 
 # Allow duplicate 'CheckPoint' symbol across units
-if (MINGW)
+if (MINGW OR UNIX)
   target_link_options(ei2d_core PRIVATE -Wl,--allow-multiple-definition)
 endif()
 
