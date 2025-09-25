@@ -1,0 +1,4 @@
+/app/earthimager/cli/build/CMakeFiles/ei2d_core.dir
+/app/earthimager/cli/build/CMakeFiles/ei2dcli.dir
+/app/earthimager/cli/build/CMakeFiles/edit_cache.dir
+/app/earthimager/cli/build/CMakeFiles/rebuild_cache.dir
