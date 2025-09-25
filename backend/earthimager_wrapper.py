@@ -563,88 +563,112 @@ class STGParser:
     @staticmethod  
     def parse_stg(stg_content: str) -> dict:
         """Parse STG file content - Real AGI format"""
-        lines = stg_content.split('\n')
-        electrodes = []
-        measurements = []
-        header_info = {}
-        
-        for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
-                continue
-                
-            # Parse header information
-            if i == 0 and "Advanced Geosciences Inc." in line:
-                header_info["format"] = "AGI STG"
-                header_info["type"] = line.split("Type: ")[-1] if "Type: " in line else "Unknown"
-            elif i == 1 and "trimmed data set" in line:
-                # Extract record count
-                parts = line.split("Records: ")
-                if len(parts) > 1:
-                    header_info["records"] = int(parts[1].split()[0])
-            elif i == 2 and line.startswith("Unit:"):
-                header_info["unit"] = line.split(": ")[1]
+        try:
+            lines = stg_content.split('\n')
+            electrodes = []
+            measurements = []
+            header_info = {}
             
-            # Parse measurement data (lines starting with numbers)
-            if line and line[0].isdigit():
-                try:
-                    parts = line.split(',')
-                    if len(parts) >= 20:  # AGI STG format has many columns
-                        measurement = {
-                            "record_id": int(parts[0].strip()),
-                            "voltage": float(parts[4]),
-                            "current": float(parts[6]),
-                            "apparent_resistivity": float(parts[7]),
-                            "electrode_a": {'x': float(parts[9]), 'y': float(parts[10]), 'z': float(parts[11])},
-                            "electrode_b": {'x': float(parts[12]), 'y': float(parts[13]), 'z': float(parts[14])},
-                            "electrode_m": {'x': float(parts[15]), 'y': float(parts[16]), 'z': float(parts[17])},
-                            "electrode_n": {'x': float(parts[18]), 'y': float(parts[19]), 'z': float(parts[20])},
-                        }
-                        measurements.append(measurement)
-                        
-                        # Extract electrode positions (A, B, M, N as indices)
-                        for elec_name, elec_data in [('A', measurement['electrode_a']), 
-                                                    ('B', measurement['electrode_b']),
-                                                    ('M', measurement['electrode_m']), 
-                                                    ('N', measurement['electrode_n'])]:
-                            elec_key = f"{elec_data['x']:.1f}_{elec_data['y']:.1f}"
-                            if not any(e.get('key') == elec_key for e in electrodes):
-                                electrodes.append({
-                                    'key': elec_key,
-                                    'x': elec_data['x'],
-                                    'y': elec_data['y'], 
-                                    'z': elec_data['z']
-                                })
-                except (ValueError, IndexError) as e:
+            print(f"STG Parser: Processing {len(lines)} lines")
+            
+            for i, line in enumerate(lines):
+                line = line.strip()
+                if not line:
                     continue
-        
-        # Infer electrode count and spacing
-        num_electrodes = len(electrodes) if electrodes else 0
-        electrode_spacing = 1.0  # Default
-        if len(electrodes) >= 2:
-            # Calculate spacing from electrode positions
-            x_coords = sorted([e['x'] for e in electrodes])
-            if len(x_coords) >= 2:
-                electrode_spacing = x_coords[1] - x_coords[0]
-        
-        return {
-            "format": "agi_stg",
-            "header_info": header_info,
-            "num_electrodes": num_electrodes,
-            "num_measurements": len(measurements),
-            "electrode_spacing": electrode_spacing,
-            "electrodes": electrodes,
-            "measurements": measurements[:10],  # First 10 for preview
-            "full_measurements": measurements,
-            "voltage_range": {
-                "min": min([m['voltage'] for m in measurements]) if measurements else 0,
-                "max": max([m['voltage'] for m in measurements]) if measurements else 0
-            },
-            "resistivity_range": {
-                "min": min([m['apparent_resistivity'] for m in measurements]) if measurements else 0,
-                "max": max([m['apparent_resistivity'] for m in measurements]) if measurements else 0
+                    
+                try:
+                    # Parse header information
+                    if i == 0 and "Advanced Geosciences Inc." in line:
+                        header_info["format"] = "AGI STG"
+                        header_info["type"] = line.split("Type: ")[-1] if "Type: " in line else "Unknown"
+                    elif i == 1 and "trimmed data set" in line:
+                        # Extract record count
+                        parts = line.split("Records: ")
+                        if len(parts) > 1:
+                            header_info["records"] = int(parts[1].split()[0])
+                    elif i == 2 and line.startswith("Unit:"):
+                        header_info["unit"] = line.split(": ")[1]
+                    
+                    # Parse measurement data (lines starting with numbers)
+                    if line and line[0].isdigit():
+                        try:
+                            parts = line.split(',')
+                            if len(parts) >= 21:  # AGI STG format has many columns
+                                measurement = {
+                                    "record_id": int(parts[0].strip()),
+                                    "voltage": float(parts[4]),
+                                    "current": float(parts[6]),
+                                    "apparent_resistivity": float(parts[7]),
+                                    "electrode_a": {'x': float(parts[9]), 'y': float(parts[10]), 'z': float(parts[11])},
+                                    "electrode_b": {'x': float(parts[12]), 'y': float(parts[13]), 'z': float(parts[14])},
+                                    "electrode_m": {'x': float(parts[15]), 'y': float(parts[16]), 'z': float(parts[17])},
+                                    "electrode_n": {'x': float(parts[18]), 'y': float(parts[19]), 'z': float(parts[20])},
+                                }
+                                measurements.append(measurement)
+                                
+                                # Extract electrode positions (A, B, M, N as indices)
+                                for elec_name, elec_data in [('A', measurement['electrode_a']), 
+                                                            ('B', measurement['electrode_b']),
+                                                            ('M', measurement['electrode_m']), 
+                                                            ('N', measurement['electrode_n'])]:
+                                    elec_key = f"{elec_data['x']:.1f}_{elec_data['y']:.1f}"
+                                    if not any(e.get('key') == elec_key for e in electrodes):
+                                        electrodes.append({
+                                            'key': elec_key,
+                                            'x': elec_data['x'],
+                                            'y': elec_data['y'], 
+                                            'z': elec_data['z']
+                                        })
+                        except (ValueError, IndexError) as e:
+                            print(f"STG Parser: Skipping line {i}: {line[:100]} - Error: {e}")
+                            continue
+                            
+                except Exception as e:
+                    print(f"STG Parser: Error processing line {i}: {str(e)}")
+                    continue
+            
+            # Infer electrode count and spacing
+            num_electrodes = len(electrodes) if electrodes else 0
+            electrode_spacing = 1.0  # Default
+            if len(electrodes) >= 2:
+                # Calculate spacing from electrode positions
+                x_coords = sorted([e['x'] for e in electrodes])
+                if len(x_coords) >= 2:
+                    electrode_spacing = x_coords[1] - x_coords[0]
+            
+            # Calculate voltage and resistivity ranges
+            voltage_range = {}
+            resistivity_range = {}
+            
+            if measurements:
+                voltages = [m['voltage'] for m in measurements if 'voltage' in m]
+                resistivities = [m['apparent_resistivity'] for m in measurements if 'apparent_resistivity' in m]
+                
+                if voltages:
+                    voltage_range = {"min": min(voltages), "max": max(voltages)}
+                if resistivities:
+                    resistivity_range = {"min": min(resistivities), "max": max(resistivities)}
+            
+            result = {
+                "format": "agi_stg",
+                "header_info": header_info,
+                "num_electrodes": num_electrodes,
+                "num_measurements": len(measurements),
+                "electrode_spacing": electrode_spacing,
+                "electrodes": electrodes,
+                "measurements": measurements[:10],  # First 10 for preview
+                "full_measurements": measurements,
+                "voltage_range": voltage_range,
+                "resistivity_range": resistivity_range
             }
-        }
+            
+            print(f"STG Parser: Successfully parsed {len(measurements)} measurements, {num_electrodes} electrodes")
+            return result
+            
+        except Exception as e:
+            print(f"STG Parser: Fatal error: {str(e)}")
+            print(f"STG content preview: {stg_content[:200]}")
+            raise Exception(f"STG parsing failed: {str(e)}")
 
 
 class MDLParser:
