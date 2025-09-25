@@ -275,7 +275,33 @@ class EarthImagerService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"INI generation error: {str(e)}")
     
-    async def health_check(self) -> Dict[str, Any]:
+    async def run_full_inversion(self, ini_content: str, stg_content: str) -> Dict[str, Any]:
+        """Run complete EarthImager 2D inversion workflow"""
+        
+        if not self.real_processor:
+            raise HTTPException(status_code=500, detail="EI2D real processor not available")
+        
+        try:
+            result = self.real_processor.run_inversion_workflow(ini_content, stg_content)
+            
+            if not result.get("success"):
+                raise HTTPException(status_code=500, detail=result.get("error", "Inversion workflow failed"))
+            
+            return {
+                "success": True,
+                "workflow": "complete_ei2d_inversion", 
+                "parameters": result.get("parameters", {}),
+                "mesh": result.get("mesh", {}),
+                "results": result.get("results", {}),
+                "out_file": result.get("out_file", {}),
+                "message": result.get("message", "Inversion completed")
+            }
+            
+        except Exception as e:
+            error_msg = f"Full inversion error: {str(e)}"
+            print(f"Error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=error_msg)
         """Check service health"""
         return {
             "service": "EarthImager 2D Web Interface",
