@@ -7,7 +7,7 @@ from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
 
 # Configurable input file
-OUT = Path("earthimager_results_fixed.out")  # <-- adjust if needed
+OUT = Path("test_toy_14_dd_fixed.out")  # <-- adjust if needed
 
 # -------------------------
 # Enhanced parsing helpers
