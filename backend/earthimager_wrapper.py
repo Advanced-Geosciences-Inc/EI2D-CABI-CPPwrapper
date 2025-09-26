@@ -100,9 +100,9 @@ class EI2DWrapper:
         # Parameter windows (full grid)
         nParamX, nParamY = 1, 1
         p1 = np.array([1], dtype=np.int32)
-        p2 = np.array([nNx], dtype=np.int32)
+        p2 = np.array([nNx - 1], dtype=np.int32)  # FIX: Use element bounds, not node bounds
         q1 = np.array([1], dtype=np.int32)
-        q2 = np.array([nNy], dtype=np.int32)
+        q2 = np.array([nNy - 1], dtype=np.int32)  # FIX: Use element bounds, not node bounds
         
         # Initialize engine
         self.lib.ei2d_InitForwGlobals(
