@@ -176,6 +176,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ARRAY BOUNDS FIX PARTIALLY VERIFIED: Inversion workflow now working without backend hanging or Fortran runtime errors. Array bounds fix prevents crashes, but real C-ABI inversion still falls back to simulation. API /api/earthimager/run-inversion completed successfully with message 'Simulation inversion completed in 20 iterations, RMS: 2.041%'. No array bounds errors detected, backend stability restored. OUT file generation working correctly with 20 iteration sections, 74 measurements, proper structure validation passed."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL FINDING: Real C-ABI inversion calls still failing with SAME Fortran runtime error 'Index 540 of dimension 1 of array n1 above upper bound of 539' in Sensitivity.f90 line 350. Array bounds fix applied to forward modeling (working) but NOT fully applied to inversion routines (ei2d_InitInvGlobals, ei2d_InvPCGLS). Function signature error fixed (_run_inversion_iterations missing start_res parameter), but underlying Fortran array bounds issue persists in inversion C-ABI calls. Forward modeling uses real C-ABI successfully, inversion still requires simulation fallback."
 
 frontend:
   - task: "File Upload Interface"
