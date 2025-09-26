@@ -187,6 +187,57 @@ subroutine ei2d_ForwardFD(NodeX, NodeY, Cond, VIcalc, Jacobian,                 
   ! (no deallocation required; process ends—kept simple for debugging)
 end subroutine ei2d_ForwardFD
 
+! ---------------------- C ABI: ForwardFE -----------------------
+subroutine ei2d_ForwardFE(NodeX, NodeY, Cond, VIcalc, Jacobian,                          &
+                          ElecNodeID, StingCMD, ParamX1, ParamX2, ParamY1, ParamY2,       &
+                          InfElec, CenterNodeX, CenterNodeY, ElemArea, GetJacobian,        &
+                          nNodes, nElem, nData) bind(C, name='ei2d_ForwardFE')
+  use iso_c_binding
+  use GlobalForw, only: gNumElectrodes, gNumParam, gNumParamX, gNumParamY, gNumNodeX, gNumNodeY, gNumInfElectrodes
+  implicit none
+  ! ------------ C ABI dummies ------------
+  real(c_double),  intent(in)    :: NodeX(*), NodeY(*), Cond(*), CenterNodeX(*), CenterNodeY(*), ElemArea(*)
+  real(c_double),  intent(inout) :: VIcalc(*), Jacobian(*)
+  integer(c_int),  intent(in)    :: ElecNodeID(*), StingCMD(*), ParamX1(*), ParamX2(*), ParamY1(*), ParamY2(*), InfElec(*)
+  integer(c_int),  value         :: GetJacobian, nNodes, nElem, nData
+
+  ! ------------ engine explicit interface ------------
+  interface
+    subroutine ForwardFE(CallBackForw, NodeX, NodeY, Cond, VIcalc, Jacobian,              &
+                         ElecNodeID, StingCMD, ParamX1, ParamX2, ParamY1, ParamY2,        &
+                         InfElec, CenterNodeX, CenterNodeY, ElemArea, GetJacobian)
+      use GlobalForw
+      implicit none
+      interface
+        subroutine CallBackForw(CallBackStatus)
+          implicit none
+          integer, intent(inout), dimension(0:1) :: CallBackStatus
+        end subroutine
+      end interface
+      real   , intent(in),  dimension(1:gNumNodes) :: NodeX, NodeY
+      real   , intent(in),  dimension(1:gNumElem)  :: Cond
+      real   , intent(out), dimension(1:gNumData)  :: VIcalc
+      real   , intent(out), dimension(1:gNumData*gNumParam) :: Jacobian
+      integer, intent(in),  dimension(1:gNumElectrodes)     :: ElecNodeID
+      integer, intent(in),  dimension(1:gNumData*4)         :: StingCMD
+      integer, intent(in),  dimension(1:gNumParamX) :: ParamX1, ParamX2
+      integer, intent(in),  dimension(1:gNumParamY) :: ParamY1, ParamY2
+      real   , intent(in),  dimension(1:gNumElem)   :: CenterNodeX, CenterNodeY
+      real   , intent(in),  dimension(1:gNumElem*4) :: ElemArea
+      integer, intent(in),  dimension(1:gNumInfElectrodes)  :: InfElec
+      integer, intent(in) :: GetJacobian
+    end subroutine
+  end interface
+
+  ! stub callback (avoid complexity)
+  external ei2d_cb_stub
+
+  call ForwardFE(ei2d_cb_stub, NodeX, NodeY, Cond, VIcalc, Jacobian,                     &
+                 ElecNodeID, StingCMD, ParamX1, ParamX2, ParamY1, ParamY2,               &
+                 InfElec, CenterNodeX, CenterNodeY, ElemArea, GetJacobian)
+
+end subroutine ei2d_ForwardFE
+
 ! ---------------------- C ABI: InitInvGlobals -----------------------
 subroutine ei2d_InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, &
                                InvMethod, IPInvMethod, MaxNumIterInvCG, IPPosMeth, &
