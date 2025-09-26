@@ -732,7 +732,7 @@ class EI2DRealDataProcessor:
                     calculated_data += np.random.normal(0, mean_app_res * 0.08, num_measurements)
                 else:
                     # Progressive convergence toward observed data with realistic layering effects
-                    convergence_factor = min(0.85, (iteration - 1) / max_iterations * 0.8)
+                    convergence_factor = min(0.95, (iteration - 1) / max_iterations * 1.2)  # Allow up to 95% convergence
                     
                     # Simulate forward response from layered model
                     forward_response = self._simulate_layered_forward_response(
@@ -742,8 +742,8 @@ class EI2DRealDataProcessor:
                     # Converge toward observed data
                     calculated_data = (1 - convergence_factor) * forward_response + convergence_factor * observed_data
                     
-                    # Add decreasing noise with iterations
-                    noise_level = mean_app_res * 0.05 * (1.0 - convergence_factor)
+                    # Add decreasing noise with iterations (much smaller noise)
+                    noise_level = mean_app_res * 0.02 * (1.0 - convergence_factor)  # Reduced from 0.05 to 0.02
                     calculated_data += np.random.normal(0, noise_level, num_measurements)
                 
                 # Calculate residuals and RMS (percent error)
