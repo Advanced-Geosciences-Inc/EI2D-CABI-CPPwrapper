@@ -12,7 +12,7 @@ from pathlib import Path
 import time
 
 # Configuration
-BACKEND_URL = "https://geoelectrics.preview.emergentagent.com/api"
+BACKEND_URL = "https://earth-imager-web.preview.emergentagent.com/api"
 TEST_DATA_DIR = "/app/backend"
 
 class EarthImagerBackendTester:
