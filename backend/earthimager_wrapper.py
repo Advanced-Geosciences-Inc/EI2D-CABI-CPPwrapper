@@ -980,13 +980,13 @@ class EI2DRealDataProcessor:
         total_nodes = nodes_x * nodes_y
         total_elements = (nodes_x - 1) * (nodes_y - 1)
         
-        # Parameters (CRITICAL FIX: Use actual mesh element dimensions, not fixed values)
-        param_x = nodes_x - 1  # Use actual element count in X direction
-        param_y = nodes_y - 1  # Use actual element count in Y direction  
-        num_parameters = param_x * param_y
+        # Parameters (CRITICAL FIX: Use same parameter setup as forward modeling - 1×1)
+        param_x = 1  # CRITICAL FIX: Use 1 parameter like forward modeling
+        param_y = 1  # CRITICAL FIX: Use 1 parameter like forward modeling
+        num_parameters = param_x * param_y  # = 1
         
         print(f"CRITICAL FIX: Conservative inversion mesh: {nodes_x}×{nodes_y} = {total_nodes} nodes, {total_elements} elements")
-        print(f"CRITICAL FIX: Using actual mesh element dimensions: {param_x}×{param_y} = {num_parameters} parameters")
+        print(f"CRITICAL FIX: Using same parameter setup as forward modeling: {param_x}×{param_y} = {num_parameters} parameters")
         
         # Validate mesh dimensions are reasonable (same as forward modeling)
         if total_nodes > 1000 or total_elements > 500:
