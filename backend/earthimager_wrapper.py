@@ -1272,6 +1272,14 @@ class EI2DRealDataProcessor:
                 param_y1 = np.array([1], dtype=np.int32) 
                 param_y2 = np.array([nodes_y - 1], dtype=np.int32)  # CRITICAL FIX: Element bounds
                 
+                # CRITICAL DEBUG: Log exact values for inversion forward modeling
+                print(f"🔍 DEBUG INVERSION FORWARD MODELING:")
+                print(f"   Node dimensions: nodes_x={nodes_x}, nodes_y={nodes_y}")
+                print(f"   Expected elements: gNumElemX={nodes_x-1}, gNumElemY={nodes_y-1}, gNumElem={(nodes_x-1)*(nodes_y-1)}")
+                print(f"   Parameter bounds: param_x1={param_x1[0]}, param_x2={param_x2[0]}, param_y1={param_y1[0]}, param_y2={param_y2[0]}")
+                print(f"   Max possible iElem = {param_y2[0]} + ({param_x2[0]}-1) * {nodes_y-1} = {param_y2[0] + (param_x2[0]-1) * (nodes_y-1)}")
+                print(f"   GetJacobian = 1 (THIS IS WHERE SENSITIVITY.F90 ERROR OCCURS)")
+                
                 inf_elec = np.array([num_electrodes + 1], dtype=np.int32)
                 
                 # Initialize forward modeling
