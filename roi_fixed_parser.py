@@ -44,24 +44,24 @@ def parse_electrode_locations(lines):
     
     return electrodes
 
-def calculate_geophysical_roi(electrodes):
-    """Calculate geophysically meaningful ROI based on electrode layout"""
+def calculate_geophysical_roi(electrodes, mesh_info=None):
+    """Calculate geophysically meaningful ROI matching EarthImager 2D criteria"""
     if not electrodes:
         return None
         
     x_coords = [e['x'] for e in electrodes]
     
-    # Survey extent
+    # Survey extent (electrode array bounds)
     x_min = min(x_coords)
     x_max = max(x_coords)
     survey_length = x_max - x_min
     
-    # Standard ERT ROI guidelines:
-    # - Lateral: electrode array extent ± 10%  
-    # - Depth: typically 0.2 to 0.3 times survey length for dipole-dipole
-    roi_x_min = x_min - survey_length * 0.1
-    roi_x_max = x_max + survey_length * 0.1
-    roi_depth_max = survey_length * 0.25  # Conservative depth limit
+    # EarthImager 2D ROI criteria (based on analysis):
+    # - Lateral: exactly electrode array bounds (no padding)
+    # - Depth: ~15% of survey length for dipole-dipole arrays
+    roi_x_min = x_min
+    roi_x_max = x_max
+    roi_depth_max = survey_length * 0.15  # EarthImager 2D investigation depth
     
     roi = {
         'x_min': roi_x_min,
@@ -72,8 +72,8 @@ def calculate_geophysical_roi(electrodes):
         'electrode_spacing': survey_length / (len(electrodes) - 1) if len(electrodes) > 1 else 1.0
     }
     
-    print(f"Calculated ROI: X=[{roi_x_min:.1f}, {roi_x_max:.1f}], Depth=[0.0, {roi_depth_max:.1f}]")
-    print(f"Survey length: {survey_length:.1f} m, Electrode spacing: {roi['electrode_spacing']:.1f} m")
+    print(f"EarthImager 2D ROI: X=[{roi_x_min:.1f}, {roi_x_max:.1f}], Depth=[0.0, {roi_depth_max:.1f}]")
+    print(f"Survey length: {survey_length:.1f} m, Investigation depth: {roi_depth_max:.1f} m")
     
     return roi
 
