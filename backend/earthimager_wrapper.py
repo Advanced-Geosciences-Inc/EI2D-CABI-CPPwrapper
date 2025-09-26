@@ -644,6 +644,15 @@ class EI2DRealDataProcessor:
                 ini_data, stg_data, mesh_result, inversion_result
             )
             
+            # Determine method used and set appropriate message and note
+            method_used = inversion_result.get("method", "simulation")
+            if method_used == "real_cabi":
+                message = f"✅ REAL C-ABI inversion completed in {inversion_result.get('final_iteration', 0)} iterations, RMS: {inversion_result.get('final_rms', 0.0):.3f}%"
+                note = "Using actual EarthImager 2D Fortran inversion routines via C-ABI. Array bounds error resolved."
+            else:
+                message = f"Simulation inversion completed in {inversion_result.get('final_iteration', 0)} iterations, RMS: {inversion_result.get('final_rms', 0.0):.3f}%"
+                note = "Using enhanced simulation (fallback). OUT file format matches EarthImager 2D reference."
+            
             return {
                 "success": True,
                 "workflow": "complete_ei2d_inversion",  # Match frontend expectation
@@ -674,8 +683,8 @@ class EI2DRealDataProcessor:
                     "content": out_file_content,
                     "size": len(out_file_content)
                 },
-                "message": f"SAFE inversion simulation completed in {inversion_result.get('final_iteration', 0)} iterations, RMS: {inversion_result.get('final_rms', 0.0):.3f}%",
-                "note": "Using enhanced simulation to avoid C-ABI array bounds errors. OUT file format matches EarthImager 2D reference."
+                "message": message,
+                "note": note
             }
             
         except Exception as e:
