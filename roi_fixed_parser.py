@@ -383,40 +383,33 @@ def main():
     print("\n=== STEP 2: Parse resistivity model ===")
     method_success = False
     
-    # Method 1: Try NODE LOCATION sections (preferred)
-    _, x_block = extract_section(lines, ";------ NODE LOCATION IN X (m) ------", ";------")
-    _, y_block = extract_section(lines, ";------ NODE LOCATION IN Y (m) ------", ";------")
-
-    if x_block and y_block:
-        x_nodes = parse_node_coordinates(x_block)
-        y_nodes = parse_node_coordinates(y_block)
+    # Method 1: Try NODE LOCATION sections (preferred) - already parsed in Step 1
+    if len(x_nodes) > 1 and len(y_nodes) > 1:
+        print(f"Found NODE sections: {len(x_nodes)} X-nodes, {len(y_nodes)} Y-nodes")
         
-        if len(x_nodes) > 1 and len(y_nodes) > 1:
-            print(f"Found NODE sections: {len(x_nodes)} X-nodes, {len(y_nodes)} Y-nodes")
+        # Calculate centroids
+        x_cent = 0.5 * (x_nodes[:-1] + x_nodes[1:])
+        depth_cent = -0.5 * (y_nodes[:-1] + y_nodes[1:])  # Negative Y becomes positive depth
+        
+        n_ex = len(x_cent)
+        n_ey = len(depth_cent)
+        
+        # Find resistivity data
+        last_iter = max((i for i, ln in enumerate(lines) if ";------ Iteration" in ln), default=-1)
+        if last_iter >= 0:
+            _, res_block = extract_section(
+                lines[last_iter:], ";-Resistivity in Ohm-m in the elemental sequential order", ";-Sensitivity"
+            )
             
-            # Calculate centroids
-            x_cent = 0.5 * (x_nodes[:-1] + x_nodes[1:])
-            depth_cent = -0.5 * (y_nodes[:-1] + y_nodes[1:])  # Negative Y becomes positive depth
-            
-            n_ex = len(x_cent)
-            n_ey = len(depth_cent)
-            
-            # Find resistivity data
-            last_iter = max((i for i, ln in enumerate(lines) if ";------ Iteration" in ln), default=-1)
-            if last_iter >= 0:
-                _, res_block = extract_section(
-                    lines[last_iter:], ";-Resistivity in Ohm-m in the elemental sequential order", ";-Sensitivity"
-                )
+            if res_block:
+                vals = parse_numbers_sci(res_block)
+                expected_elements = n_ex * n_ey
                 
-                if res_block:
-                    vals = parse_numbers_sci(res_block)
-                    expected_elements = n_ex * n_ey
-                    
-                    if len(vals) >= expected_elements:
-                        vals = vals[:expected_elements]
-                        Z = vals.reshape((n_ey, n_ex), order="F")
-                        method_success = True
-                        print(f"✅ Parsed {n_ex}×{n_ey} grid with NODE sections")
+                if len(vals) >= expected_elements:
+                    vals = vals[:expected_elements]
+                    Z = vals.reshape((n_ey, n_ex), order="F")
+                    method_success = True
+                    print(f"✅ Parsed {n_ex}×{n_ey} grid with NODE sections")
     
     # Method 2: Infer from resistivity data (fallback)
     if not method_success:
