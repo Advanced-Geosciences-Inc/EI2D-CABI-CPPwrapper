@@ -203,23 +203,41 @@ const EarthImagerInterface = () => {
     }
 
     try {
-      // Direct client-side download without backend call
       const content = results.out_file.content;
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'earthimager_inversion_results.out';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      console.log('OUT file content length:', content.length);
+      console.log('First 500 chars:', content.substring(0, 500));
       
-      setStatus('OUT file downloaded successfully');
+      // Method 1: Try data URL approach
+      const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'earthimager_inversion_results.out';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      
+      // Force click with user interaction
+      setTimeout(() => {
+        a.click();
+        document.body.removeChild(a);
+        setStatus('OUT file download initiated - check Downloads folder');
+      }, 100);
+      
     } catch (error) {
-      setStatus(`Download error: ${error.message}`);
       console.error('Download error:', error);
+      
+      // Fallback: Show content in new window for manual save
+      try {
+        const content = results.out_file.content;
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write('<pre>' + content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+        newWindow.document.title = 'EarthImager Inversion Results - Save As .out file';
+        setStatus('OUT file opened in new window - use Ctrl+S to save as .out file');
+      } catch (fallbackError) {
+        setStatus(`Download failed: ${error.message}. Try copying content from console.`);
+        console.log('=== OUT FILE CONTENT (copy this to save manually) ===');
+        console.log(results.out_file.content);
+        console.log('=== END OUT FILE CONTENT ===');
+      }
     }
   };
 
