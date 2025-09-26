@@ -158,9 +158,9 @@ backend:
 
   - task: "Inversion Workflow with OUT File Generation"
     implemented: true
-    working: true
+    working: false
     file: "earthimager_wrapper.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
