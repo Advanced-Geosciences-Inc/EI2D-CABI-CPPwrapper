@@ -531,6 +531,17 @@ class EI2DRealDataProcessor:
             
             print("ForwardFD completed successfully!")
             
+            # DEBUG: Check if VI array was populated
+            print(f"VI array statistics:")
+            print(f"  Total values: {len(VI)}")
+            print(f"  Sum: {np.sum(VI)}")
+            print(f"  Non-zero count: {np.count_nonzero(VI)}")
+            print(f"  Min/Max: {np.min(VI):.6f} / {np.max(VI):.6f}")
+            if np.any(VI != 0):
+                print(f"  First 5 non-zero: {VI[VI != 0][:5]}")
+            else:
+                print(f"  ⚠️  All VI values are zero - forward modeling issue detected")
+            
             # Convert to apparent resistivities
             apparent_resistivities = []
             geometric_factors = []
