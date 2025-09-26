@@ -1,0 +1,41 @@
+In order to run Volente on a system support files for Fortran must exist.
+These files will be installed using the VFRUN660I.exe setup file that is
+downloaded from Compaq's website on URL:
+     http://www.compaq.com/fortran/kb/q1023.html
+     http://www.compaq.com/fortran/visual/redist.html
+
+The following is an excerpt from that webpage.
+------------------------------------------------------------------------
+The self-installing executable kit on this page installs the run-time components
+needed to run Visual Fortran applications on systems which do not have
+Visual Fortran installed.
+The components installed by this kit are: 
+
+DFORRT.DLL - Visual Fortran non-threaded run-time support 
+DFORMD.DLL - Visual Fortran threaded run-time support 
+FQWIN.HLP - QuickWin run-time help file 
+MSVCRT.DLL - Microsoft Visual C run-time support 
+OLEAUT32.DLL - Microsoft OLE Automation 
+OLEPRO32.DLL - Microsoft OLE Automation 
+STDOLE32.TLB - Microsoft OLE Automation
+ 
+Files will be installed only if newer versions do not exist on the system.
+The files in this kit are the same as in Compaq Visual Fortran 6.5A, and can
+be used with earlier versions of Visual Fortran.
+--------------------------------------------------------------------------------
+
+After checking up on the requirements it turns out that the files *really* needed are:
+
+Visual Fortran files:
+DFORRT.DLL - Visual Fortran non-threaded run-time support 
+DFORMD.DLL - Visual Fortran threaded run-time support
+DFORRTD.DLL - Don't know the use of this file 
+
+Microsoft system files:
+MSVCRT.DLL - Microsoft Visual C run-time support 
+OLEAUT32.DLL - Microsoft OLE Automation 
+OLEPRO32.DLL - Microsoft OLE Automation 
+STDOLE32.TLB - Microsoft OLE Automation
+MSVCRTD.DLL - Microsoft C run-time library
+
+These files must be installed on the target system, preferably in the system32 directory.
