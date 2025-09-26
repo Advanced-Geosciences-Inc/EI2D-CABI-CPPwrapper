@@ -22,35 +22,41 @@ class EarthImagerService:
         self._initialize_services()
         
     def _initialize_services(self):
-        """Initialize EI2D services with improved error handling"""
+        """Initialize EI2D services with startup protection"""
         try:
             self.wrapper = EI2DWrapper()
         except Exception as e:
             print(f"Warning: Could not initialize EI2D wrapper: {e}")
             self.wrapper = None
             
-        # Re-enable real processor with better error handling and timeout protection
-        try:
-            print("Initializing EI2D real processor with timeout protection...")
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("EI2D initialization timeout")
-            
-            # Set a timeout for initialization
-            signal.signal(signal.SIGALRM, timeout_handler) 
-            signal.alarm(5)  # 5 second timeout
-            
-            self.real_processor = EI2DRealDataProcessor()
-            signal.alarm(0)  # Cancel timeout
-            
-            print("✅ EI2D real processor initialized successfully")
-            
-        except (Exception, TimeoutError) as e:
-            signal.alarm(0)  # Cancel timeout
-            print(f"Warning: Could not initialize EI2D real processor: {e}")
-            print("The system will use simulation fallback for inversion operations")
-            self.real_processor = None
+        # TEMPORARILY DISABLE real processor during startup to prevent health check hanging
+        # The library works for individual API calls but causes issues during service initialization
+        print("STARTUP: Disabling EI2D real processor to prevent health check hanging")
+        print("(Library will be available for individual API calls)")
+        self.real_processor = None
+        
+        # TODO: Move library initialization to lazy loading per API call
+        # try:
+        #     print("Initializing EI2D real processor with timeout protection...")
+        #     import signal
+        #     
+        #     def timeout_handler(signum, frame):
+        #         raise TimeoutError("EI2D initialization timeout")
+        #     
+        #     # Set a timeout for initialization
+        #     signal.signal(signal.SIGALRM, timeout_handler) 
+        #     signal.alarm(5)  # 5 second timeout
+        #     
+        #     self.real_processor = EI2DRealDataProcessor()
+        #     signal.alarm(0)  # Cancel timeout
+        #     
+        #     print("✅ EI2D real processor initialized successfully")
+        #     
+        # except (Exception, TimeoutError) as e:
+        #     signal.alarm(0)  # Cancel timeout
+        #     print(f"Warning: Could not initialize EI2D real processor: {e}")
+        #     print("The system will use simulation fallback for inversion operations")
+        #     self.real_processor = None
     
     async def run_forward_modeling(self, 
                                  n_electrodes: int = 8, 
