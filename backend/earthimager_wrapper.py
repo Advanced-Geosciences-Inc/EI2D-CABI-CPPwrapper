@@ -1275,11 +1275,11 @@ class EI2DRealDataProcessor:
                     sting_cmd[i*4+2] = electrode_positions.get(m_key, 1)
                     sting_cmd[i*4+3] = electrode_positions.get(n_key, 1)
                 
-                # Parameter windows (simplified - full mesh)
+                # Parameter windows (FIXED - use element dimensions, not node dimensions)
                 param_x1 = np.array([1], dtype=np.int32)
-                param_x2 = np.array([nodes_x], dtype=np.int32)
+                param_x2 = np.array([nodes_x - 1], dtype=np.int32)  # CRITICAL FIX: Element bounds
                 param_y1 = np.array([1], dtype=np.int32) 
-                param_y2 = np.array([nodes_y], dtype=np.int32)
+                param_y2 = np.array([nodes_y - 1], dtype=np.int32)  # CRITICAL FIX: Element bounds
                 
                 inf_elec = np.array([num_electrodes + 1], dtype=np.int32)
                 
