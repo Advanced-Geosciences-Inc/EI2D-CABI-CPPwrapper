@@ -152,6 +152,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "RESOLVED: Safe simulation approach successfully implemented. C-ABI array bounds error detected and system automatically falls back to enhanced simulation that avoids Fortran runtime errors. Forward modeling functionality working correctly through safe simulation path."
+      - working: true
+        agent: "testing"
+        comment: "✅ ARRAY BOUNDS FIX VERIFIED: Real C-ABI forward modeling now working with toy-14-dd data. Fixed parameter region bounds from NODE dimensions to ELEMENT dimensions (p2 = np.array([nNx - 1]), q2 = np.array([nNy - 1])). Forward modeling API /api/earthimager/forward-model-real successfully completed with method 'real_ei2d_forward_fd_fixed' and message 'FIXED: Real EI2D forward modeling completed with conservative mesh sizing. 74 V/I values computed using FE method.' No backend hanging or Fortran runtime errors detected."
 
   - task: "Inversion Workflow with OUT File Generation"
     implemented: true
