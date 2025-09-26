@@ -1125,8 +1125,162 @@ const ResultsTab = ({ results, onDownloadOutFile, onGeneratePlots, loading }) =>
               </div>
             </div>
 
+            {/* Detailed Forward Modeling Results */}
+            {results.results && (
+              <div className="space-y-4">
+                
+                {/* V/I Data and Apparent Resistivities */}
+                {(results.results.vi_data || results.results.apparent_resistivities) && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                    <h3 className="font-medium text-green-900 mb-3">Forward Modeling Results</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      
+                      {results.results.vi_data && (
+                        <div>
+                          <h4 className="text-sm font-medium text-green-800 mb-2">V/I Measurements ({results.results.vi_data.length} points)</h4>
+                          <div className="bg-white rounded border p-2 max-h-32 overflow-y-auto">
+                            <div className="text-xs text-green-700 font-mono">
+                              {results.results.vi_data.slice(0, 10).map((value, idx) => (
+                                <div key={idx}>{idx + 1}: {typeof value === 'number' ? value.toFixed(6) : value}</div>
+                              ))}
+                              {results.results.vi_data.length > 10 && <div>... and {results.results.vi_data.length - 10} more</div>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {results.results.apparent_resistivities && (
+                        <div>
+                          <h4 className="text-sm font-medium text-green-800 mb-2">Apparent Resistivities ({results.results.apparent_resistivities.length} values)</h4>
+                          <div className="bg-white rounded border p-2 max-h-32 overflow-y-auto">
+                            <div className="text-xs text-green-700 font-mono">
+                              {results.results.apparent_resistivities.slice(0, 10).map((value, idx) => (
+                                <div key={idx}>{idx + 1}: {typeof value === 'number' ? value.toFixed(2) : value} Ω·m</div>
+                              ))}
+                              {results.results.apparent_resistivities.length > 10 && <div>... and {results.results.apparent_resistivities.length - 10} more</div>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+
+                {/* Geometric Factors */}
+                {results.results.geometric_factors && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
+                    <h3 className="font-medium text-purple-900 mb-3">Geometric Factors</h3>
+                    <div className="bg-white rounded border p-2 max-h-32 overflow-y-auto">
+                      <div className="text-xs text-purple-700 font-mono">
+                        {results.results.geometric_factors.slice(0, 15).map((value, idx) => (
+                          <div key={idx}>G{idx + 1}: {typeof value === 'number' ? value.toFixed(3) : value}</div>
+                        ))}
+                        {results.results.geometric_factors.length > 15 && <div>... and {results.results.geometric_factors.length - 15} more</div>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mesh Information */}
+                {results.mesh && Object.keys(results.mesh).length > 0 && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-md p-4">
+                    <h3 className="font-medium text-indigo-900 mb-3">Mesh Information</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      
+                      {results.mesh.mesh_x_coords && (
+                        <div>
+                          <span className="text-indigo-700 font-medium">X Nodes:</span>
+                          <div className="text-indigo-900">{results.mesh.mesh_x_coords.length}</div>
+                        </div>
+                      )}
+                      
+                      {results.mesh.mesh_y_coords && (
+                        <div>
+                          <span className="text-indigo-700 font-medium">Y Nodes:</span>
+                          <div className="text-indigo-900">{results.mesh.mesh_y_coords.length}</div>
+                        </div>
+                      )}
+                      
+                      {results.mesh.conductivity && (
+                        <div>
+                          <span className="text-indigo-700 font-medium">Elements:</span>
+                          <div className="text-indigo-900">{results.mesh.conductivity.length}</div>
+                        </div>
+                      )}
+                      
+                      {results.mesh.node_x && results.mesh.node_y && (
+                        <div>
+                          <span className="text-indigo-700 font-medium">Total Nodes:</span>
+                          <div className="text-indigo-900">{Math.min(results.mesh.node_x.length, results.mesh.node_y.length)}</div>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* Mesh coordinate ranges */}
+                    {results.mesh.mesh_x_coords && results.mesh.mesh_y_coords && (
+                      <div className="mt-3 pt-3 border-t border-indigo-200">
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div>
+                            <span className="text-indigo-700 font-medium">X Range:</span>
+                            <div className="text-indigo-900">
+                              {Math.min(...results.mesh.mesh_x_coords).toFixed(2)} to {Math.max(...results.mesh.mesh_x_coords).toFixed(2)} m
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-indigo-700 font-medium">Y Range:</span>  
+                            <div className="text-indigo-900">
+                              {Math.min(...results.mesh.mesh_y_coords).toFixed(2)} to {Math.max(...results.mesh.mesh_y_coords).toFixed(2)} m
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+                {/* Electrode Positions */}
+                {results.results.electrode_positions && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <h3 className="font-medium text-yellow-900 mb-3">Electrode Positions ({results.results.electrode_positions.length} electrodes)</h3>
+                    <div className="bg-white rounded border p-2 max-h-32 overflow-y-auto">
+                      <div className="text-xs text-yellow-700 font-mono">
+                        {results.results.electrode_positions.slice(0, 8).map((pos, idx) => (
+                          <div key={idx}>E{idx + 1}: ({Array.isArray(pos) ? pos.map(p => p.toFixed(1)).join(', ') : pos})</div>
+                        ))}
+                        {results.results.electrode_positions.length > 8 && <div>... and {results.results.electrode_positions.length - 8} more electrodes</div>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Method and Status Information */}
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Computation Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-700 font-medium">Method Used:</span>
+                      <div className="text-gray-900">{results.method}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-700 font-medium">Status:</span>
+                      <div className="text-gray-900">{results.message}</div>
+                    </div>
+                  </div>
+                  {results.note && (
+                    <div className="mt-2 text-xs text-gray-600 italic">
+                      {results.note}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+
             {/* Rest of existing results display logic */}
-            {/* Mesh Information, Results Summary, V/I Data, etc. - keeping existing code */}
+            {/* Keeping existing inversion results, validation results, etc. */}
             
           </div>
         )}
