@@ -1186,7 +1186,7 @@ class EI2DRealDataProcessor:
                 "final_iteration": iteration,
                 "final_rms": float(rms_error),
                 "converged": rms_error < max_rms,
-                "method": "real_ei2d_inversion" if self.lib else "simulation"
+                "method": "real_cabi" if self.lib else "simulation"
             }
             
         except Exception as e:
