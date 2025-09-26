@@ -354,10 +354,24 @@ def main():
     print(f"Processing: {OUT.resolve()}")
     print(f"File contains {len(lines)} lines")
 
-    # Step 1: Parse electrode locations to determine ROI
+    # Step 1: Parse electrode locations and mesh info to determine ROI
     print("\n=== STEP 1: Determine EarthImager 2D ROI ===")
     electrodes = parse_electrode_locations(lines)
-    if electrodes:
+    mesh_info = parse_mesh_size_section(lines)
+    
+    # Parse node coordinates for dynamic ROI calculation
+    _, x_block = extract_section(lines, ";------ NODE LOCATION IN X (m) ------", ";------")
+    _, y_block = extract_section(lines, ";------ NODE LOCATION IN Y (m) ------", ";------")
+    
+    x_nodes = parse_node_coordinates(x_block) if x_block else np.array([])
+    y_nodes = parse_node_coordinates(y_block) if y_block else np.array([])
+    
+    if electrodes and mesh_info and len(x_nodes) > 1 and len(y_nodes) > 1:
+        roi = calculate_geophysical_roi_dynamic(electrodes, mesh_info, x_nodes, y_nodes)
+        if not roi:
+            # Fallback to original method
+            roi = calculate_geophysical_roi(electrodes)
+    elif electrodes:
         roi = calculate_geophysical_roi(electrodes)
         if not roi:
             raise SystemExit("❌ Could not calculate meaningful ROI")
