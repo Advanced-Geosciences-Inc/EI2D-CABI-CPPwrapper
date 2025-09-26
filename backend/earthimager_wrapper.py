@@ -628,11 +628,16 @@ class EI2DRealDataProcessor:
             if self.lib:
                 try:
                     print("ATTEMPTING REAL C-ABI INVERSION: Array bounds fixes applied, library available")
-                    # Debug: Test method call with explicit parameters
-                    print(f"Calling with parameters: mesh_result, inversion_setup, measurements({len(measurements)}), max_iter({max_iterations}), max_rms({max_rms}), forw_method({forw_mod_meth}), start_res({start_res})")
                     
+                    # Use keyword arguments to avoid signature issues
                     inversion_result = self._run_inversion_iterations(
-                        mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                        mesh_result=mesh_result, 
+                        inversion_setup=inversion_setup, 
+                        measurements=measurements, 
+                        max_iterations=max_iterations, 
+                        max_rms=max_rms, 
+                        forw_mod_meth=forw_mod_meth, 
+                        start_res=start_res
                     )
                     print("✅ SUCCESS: Real C-ABI inversion completed without errors!")
                 except Exception as e:
