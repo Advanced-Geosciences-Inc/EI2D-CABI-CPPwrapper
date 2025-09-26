@@ -22,18 +22,23 @@ class EarthImagerService:
         self._initialize_services()
         
     def _initialize_services(self):
-        """Initialize EI2D services"""
+        """Initialize EI2D services (temporarily disabled for debugging)"""
         try:
             self.wrapper = EI2DWrapper()
         except Exception as e:
             print(f"Warning: Could not initialize EI2D wrapper: {e}")
             self.wrapper = None
             
-        try:
-            self.real_processor = EI2DRealDataProcessor()
-        except Exception as e:
-            print(f"Warning: Could not initialize EI2D real processor: {e}")
-            self.real_processor = None
+        # TEMPORARILY DISABLE real processor to avoid hanging during health check
+        print("TEMPORARY: Disabling EI2D real processor to prevent health check hanging")
+        self.real_processor = None
+        
+        # TODO: Re-enable once library initialization issues are resolved
+        # try:
+        #     self.real_processor = EI2DRealDataProcessor()
+        # except Exception as e:
+        #     print(f"Warning: Could not initialize EI2D real processor: {e}")
+        #     self.real_processor = None
     
     async def run_forward_modeling(self, 
                                  n_electrodes: int = 8, 
