@@ -526,7 +526,7 @@ const ParametersTab = ({ forwardParams, setForwardParams, iniParams, setIniParam
                   className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
                   <Play className="w-4 h-4" />
-                  <span>{loading ? 'Processing...' : 'Run with Real Data'}</span>
+                  <span>{loading ? 'Processing...' : 'Run Real EI2D Forward Model'}</span>
                 </button>
               )}
             </div>
