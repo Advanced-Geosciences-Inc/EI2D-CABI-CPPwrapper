@@ -522,8 +522,8 @@ class EI2DRealDataProcessor:
                 q1.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 q2.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 inf.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                0,                      # GetJacobian (0=forward only, 1=with Jacobian)
-                                                # NOTE: Setting to 0 for stability - Jacobian has array bounds issues
+                1,                      # GetJacobian (1=calculate V/I + Jacobian)
+                                                # ENABLING to ensure voltage calculations
                 nNodes,                 # nNodes
                 nElem,                  # nElem
                 nData                   # nData
