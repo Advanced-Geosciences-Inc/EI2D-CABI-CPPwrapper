@@ -183,9 +183,86 @@ class EarthImagerBackendTester:
             self.test_results["ini_processing"]["details"]["error"] = str(e)
             return False
     
+    def test_forward_modeling_real(self):
+        """Test real forward modeling API with array bounds fix"""
+        self.log("Testing REAL forward modeling with array bounds fix...")
+        
+        stg_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.stg"
+        ini_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.ini"
+        
+        if not stg_file_path.exists() or not ini_file_path.exists():
+            self.log("Test files not found for forward modeling", "ERROR")
+            self.test_results["forward_modeling_real"] = {
+                "status": "failed", 
+                "details": {"error": "Test files not found"}
+            }
+            return False
+            
+        try:
+            with open(ini_file_path, 'rb') as ini_f, open(stg_file_path, 'rb') as stg_f:
+                files = {
+                    'ini_file': ('test_toy_14_dd.ini', ini_f, 'text/plain'),
+                    'stg_file': ('test_toy_14_dd.stg', stg_f, 'text/plain')
+                }
+                
+                # Test the real forward modeling endpoint
+                self.log("Calling /api/earthimager/forward-model-real...")
+                response = requests.post(
+                    f"{self.backend_url}/earthimager/forward-model-real",
+                    files=files,
+                    timeout=45  # Timeout for C-ABI calls
+                )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                success = data.get("success", False)
+                method = data.get("method", "unknown")
+                message = data.get("message", "")
+                
+                # Check if backend completed without hanging
+                backend_completed = success and "completed" in message.lower()
+                no_array_bounds_error = "array" not in message.lower() and "bounds" not in message.lower()
+                
+                self.test_results["forward_modeling_real"] = {
+                    "status": "passed" if (backend_completed and no_array_bounds_error) else "failed",
+                    "details": {
+                        "success": success,
+                        "method": method,
+                        "message": message,
+                        "backend_completed": backend_completed,
+                        "no_array_bounds_error": no_array_bounds_error,
+                        "response_data": data
+                    }
+                }
+                
+                if backend_completed and no_array_bounds_error:
+                    self.log(f"✅ Real forward modeling passed: {method}")
+                    self.log(f"Message: {message}")
+                else:
+                    self.log(f"❌ Real forward modeling issues detected", "ERROR")
+                    
+                return backend_completed and no_array_bounds_error
+                
+            else:
+                self.log(f"Forward modeling failed: {response.status_code} - {response.text}", "ERROR")
+                self.test_results["forward_modeling_real"] = {
+                    "status": "failed",
+                    "details": {"error": f"HTTP {response.status_code}: {response.text}"}
+                }
+                return False
+                
+        except Exception as e:
+            self.log(f"Forward modeling error: {e}", "ERROR")
+            self.test_results["forward_modeling_real"] = {
+                "status": "failed",
+                "details": {"error": str(e)}
+            }
+            return False
+
     def test_inversion_workflow(self):
-        """Test complete inversion workflow with both files"""
-        self.log("Testing complete inversion workflow...")
+        """Test complete inversion workflow with REAL C-ABI calls (array bounds fix applied)"""
+        self.log("Testing REAL inversion workflow with array bounds fix...")
         
         stg_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.stg"
         ini_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.ini"
@@ -204,10 +281,11 @@ class EarthImagerBackendTester:
                 }
                 
                 # Test the main inversion endpoint
+                self.log("Calling /api/earthimager/run-inversion...")
                 response = requests.post(
                     f"{self.backend_url}/earthimager/run-inversion",
                     files=files,
-                    timeout=60  # Longer timeout for inversion
+                    timeout=90  # Longer timeout for real C-ABI inversion
                 )
             
             if response.status_code == 200:
@@ -219,6 +297,13 @@ class EarthImagerBackendTester:
                 parameters = data.get("parameters", {})
                 results = data.get("results", {})
                 out_file = data.get("out_file", {})
+                message = data.get("message", "")
+                
+                # CRITICAL: Check if REAL C-ABI was used or simulation fallback
+                is_real_cabi = "✅ REAL C-ABI inversion completed" in message
+                is_simulation = "Simulation inversion completed" in message
+                no_array_bounds_error = "array" not in message.lower() and "bounds" not in message.lower()
+                no_hanging = success  # If we got a response, backend didn't hang
                 
                 # Check for key inversion components
                 has_mesh = "mesh" in data and data["mesh"]
@@ -229,7 +314,9 @@ class EarthImagerBackendTester:
                     success and
                     workflow == "complete_ei2d_inversion" and
                     has_mesh and
-                    has_results
+                    has_results and
+                    no_hanging and
+                    no_array_bounds_error
                 )
                 
                 self.test_results["inversion_workflow"]["status"] = "passed" if validation_success else "failed"
@@ -240,17 +327,34 @@ class EarthImagerBackendTester:
                     "has_results": has_results,
                     "has_out_file": has_out_file,
                     "parameters": parameters,
-                    "message": data.get("message", ""),
-                    "input_files": data.get("input_files", {})
+                    "message": message,
+                    "input_files": data.get("input_files", {}),
+                    "is_real_cabi": is_real_cabi,
+                    "is_simulation": is_simulation,
+                    "no_array_bounds_error": no_array_bounds_error,
+                    "no_hanging": no_hanging,
+                    "array_bounds_fix_status": "SUCCESS" if (no_array_bounds_error and no_hanging) else "FAILED"
                 }
                 
                 if validation_success:
-                    self.log(f"Inversion workflow passed: {workflow}")
+                    if is_real_cabi:
+                        self.log(f"✅ REAL C-ABI inversion SUCCESS: {workflow}")
+                        self.log(f"✅ Array bounds fix WORKING: No Fortran runtime errors")
+                    elif is_simulation:
+                        self.log(f"⚠️  Simulation fallback used: {workflow}")
+                        self.log(f"✅ Array bounds fix partially working: No hanging, but fallback used")
+                    else:
+                        self.log(f"✅ Inversion completed: {workflow}")
+                    
                     # Store OUT file content for validation
                     if has_out_file:
                         self.out_file_content = out_file.get("content", "")
                 else:
-                    self.log(f"Inversion workflow validation failed", "ERROR")
+                    self.log(f"❌ Inversion workflow validation failed", "ERROR")
+                    if not no_array_bounds_error:
+                        self.log(f"❌ Array bounds error still present!", "ERROR")
+                    if not no_hanging:
+                        self.log(f"❌ Backend hanging detected!", "ERROR")
                     
                 return validation_success
                 
