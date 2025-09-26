@@ -1059,15 +1059,15 @@ class EI2DRealDataProcessor:
             if self.lib:
                 # Initialize inversion engine
                 self.lib.ei2d_InitInvGlobals(
-                    num_measurements,       # NumData
-                    mesh_result["nodes_x"], # NumElemX  
-                    mesh_result["nodes_y"], # NumElemY
-                    mesh_result["param_x"], # NumParamX
-                    mesh_result["param_y"], # NumParamY
-                    0,                      # InvMethod (0=PCGLS)
-                    0,                      # IPInvMethod (no IP)
-                    10,                     # MaxNumIterInvCG
-                    0,                      # IPPosMeth
+                    num_measurements,               # NumData
+                    mesh_result["nodes_x"] - 1,     # NumElemX (FIXED: element dim, not node dim)
+                    mesh_result["nodes_y"] - 1,     # NumElemY (FIXED: element dim, not node dim)
+                    mesh_result["param_x"],         # NumParamX
+                    mesh_result["param_y"],         # NumParamY
+                    0,                              # InvMethod (0=PCGLS)
+                    0,                              # IPInvMethod (no IP)
+                    10,                             # MaxNumIterInvCG
+                    0,                              # IPPosMeth
                     0.2,                    # ModResoFactor
                     1.0,                    # EpsilonD
                     1.0                     # EpsilonM
