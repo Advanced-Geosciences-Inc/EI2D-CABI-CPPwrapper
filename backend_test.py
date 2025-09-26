@@ -21,6 +21,7 @@ class EarthImagerBackendTester:
         self.test_results = {
             "stg_processing": {"status": "pending", "details": {}},
             "ini_processing": {"status": "pending", "details": {}},
+            "forward_modeling_real": {"status": "pending", "details": {}},
             "inversion_workflow": {"status": "pending", "details": {}},
             "out_file_validation": {"status": "pending", "details": {}},
             "api_endpoints": {"status": "pending", "details": {}}
