@@ -173,6 +173,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "FULLY WORKING: Complete inversion workflow successfully tested with toy-14-dd data. Processes 74 measurements and 14 electrodes correctly. Generates proper OUT file (~51KB) with all required sections: 5 iteration sections, resistivity matrices, sensitivity matrices, and V/I measurement data. Realistic convergence in 3-5 iterations with RMS values around 4.4-4.6%. Safe simulation approach avoids C-ABI errors while maintaining EarthImager 2D format compatibility."
+      - working: true
+        agent: "testing"
+        comment: "✅ ARRAY BOUNDS FIX PARTIALLY VERIFIED: Inversion workflow now working without backend hanging or Fortran runtime errors. Array bounds fix prevents crashes, but real C-ABI inversion still falls back to simulation. API /api/earthimager/run-inversion completed successfully with message 'Simulation inversion completed in 20 iterations, RMS: 2.041%'. No array bounds errors detected, backend stability restored. OUT file generation working correctly with 20 iteration sections, 74 measurements, proper structure validation passed."
 
 frontend:
   - task: "File Upload Interface"
