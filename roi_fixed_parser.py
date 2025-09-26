@@ -383,8 +383,8 @@ def main():
         gaussian_sigma=0.6,
         mask_corners=True,
         mask_angle_deg=45,
-        save_path=f"roi_filtered_{OUT.stem}.png",
-        title=f"ERT Resistivity Model - {OUT.name}",
+        save_path=f"ei2d_matched_{OUT.stem}.png",
+        title=f"ERT Model (EI2D ROI) - {OUT.name}",
         show=True
     )
 
