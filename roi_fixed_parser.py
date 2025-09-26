@@ -7,7 +7,7 @@ from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
 
 # Configurable input file
-OUT = Path("BeaverHoles_trial5.out")  # <-- adjust if needed
+OUT = Path("earthimager_results_fixed.out")  # <-- adjust if needed
 
 # -------------------------
 # Enhanced parsing helpers
