@@ -203,28 +203,23 @@ const EarthImagerInterface = () => {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('content', results.out_file.content);
-      
-      const response = await axios.post(`${API}/earthimager/download-out-file`, formData, {
-        responseType: 'blob'
-      });
-      
-      // Download the file
-      const blob = new Blob([response.data], { type: 'text/plain' });
+      // Direct client-side download without backend call
+      const content = results.out_file.content;
+      const blob = new Blob([content], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = 'earthimager_results.out';
+      a.download = 'earthimager_inversion_results.out';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
       
       setStatus('OUT file downloaded successfully');
     } catch (error) {
-      setStatus(`Download error: ${error.response?.data?.detail || error.message}`);
+      setStatus(`Download error: ${error.message}`);
+      console.error('Download error:', error);
     }
   };
 
