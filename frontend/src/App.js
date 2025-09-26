@@ -243,43 +243,37 @@ const EarthImagerInterface = () => {
 
     setLoading(true);
     try {
-      // Note: We need the actual file contents, not just the parsed metadata
-      // For now, show a message that files need to be re-uploaded for real processing
-      setStatus('Feature needs actual file contents - please re-upload files to enable real data processing');
+      // Create FormData with actual file contents
+      const formData = new FormData();
       
-      // Temporary: Use enhanced mock with uploaded file data
-      const mockResult = {
-        success: true,
-        method: "enhanced_mock_with_uploaded_data", 
-        message: "Processing uploaded STG data structure (mock enhanced)",
-        parameters: {
-          n_electrodes: uploadedFiles.stg.data.num_electrodes,
-          electrode_spacing: uploadedFiles.stg.data.electrode_spacing || forwardParams.electrode_spacing,
-          resistivity: forwardParams.resistivity,
-          conductivity: (1.0 / parseFloat(forwardParams.resistivity || 100)).toFixed(4) + "",
-          forward_method: uploadedFiles.ini?.data?.parsed_data?.Forward?.ForwModMeth === "1" ? "FE" : "FD",
-          survey_type: uploadedFiles.stg.data.format
-        },
-        results: {
-          num_data_points: uploadedFiles.stg.data.num_measurements,
-          vi_data: uploadedFiles.stg.data.measurement_preview?.map(m => m.voltage) || [],
-          apparent_resistivities: uploadedFiles.stg.data.measurement_preview?.map(m => m.apparent_resistivity) || [],
-          voltage_range: uploadedFiles.stg.data.voltage_range,
-          resistivity_range: uploadedFiles.stg.data.resistivity_range,
-          survey_config: uploadedFiles.stg.data.measurement_preview?.map(m => [
-            m.electrode_a?.x, m.electrode_b?.x, m.electrode_m?.x, m.electrode_n?.x
-          ]) || [],
-          mesh_info: {
-            nodes_x: uploadedFiles.stg.data.num_electrodes,
-            nodes_y: 6,
-            total_nodes: uploadedFiles.stg.data.num_electrodes * 6
-          }
-        },
-        note: "Using parsed STG data from upload. For full real data processing, backend integration needs actual file contents."
-      };
+      // Create File objects from the original content
+      const iniBlob = new Blob([uploadedFiles.ini.originalContent], { type: 'text/plain' });
+      const stgBlob = new Blob([uploadedFiles.stg.originalContent], { type: 'text/plain' });
       
-      setResults(mockResult);
-      setStatus(`Real data processing: ${uploadedFiles.stg.data.num_electrodes} electrodes, ${uploadedFiles.stg.data.num_measurements} measurements processed`);
+      const iniFile = new File([iniBlob], uploadedFiles.ini.name, { type: 'text/plain' });
+      const stgFile = new File([stgBlob], uploadedFiles.stg.name, { type: 'text/plain' });
+      
+      formData.append('ini_file', iniFile);
+      formData.append('stg_file', stgFile);
+      
+      setStatus('Running real EI2D forward modeling with Fortran engine...');
+      
+      const response = await axios.post(`${API}/earthimager/forward-model-real`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResults(response.data);
+      
+      // Show success message based on method used
+      const method = response.data.method || 'unknown';
+      if (method.includes('real_ei2d')) {
+        setStatus('✅ Real EI2D forward modeling completed successfully using Fortran engine!');
+      } else if (method.includes('mock')) {
+        setStatus('⚠️ Real EI2D engine unavailable - used enhanced mock fallback');
+      } else {
+        setStatus('Forward modeling completed successfully');
+      }
+      
     } catch (error) {
       setStatus(`Real forward modeling error: ${error.response?.data?.detail || error.message}`);
       console.error('Real forward modeling error:', error);
