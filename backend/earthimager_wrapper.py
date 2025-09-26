@@ -1014,7 +1014,7 @@ class EI2DRealDataProcessor:
         param_y = nodes_y - 1  # Use actual element count in Y direction  
         num_parameters = param_x * param_y
         
-        print(f"Fixed mesh parameters: {param_x}×{param_y} = {num_parameters} (matching reference)")
+        print(f"CRITICAL FIX: Using actual mesh element dimensions: {param_x}×{param_y} = {num_parameters} parameters")
         
         return {
             "mesh_x": mesh_x,
