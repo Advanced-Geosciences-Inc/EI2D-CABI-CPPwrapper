@@ -1349,6 +1349,38 @@ class EI2DRealDataProcessor:
         out_lines.append("")
         out_lines.append("")
         
+        # NODE LOCATION sections - CRITICAL for Python parsing
+        out_lines.append(";------ NODE LOCATION IN X (m) ------")
+        out_lines.append("")
+        out_lines.append("Node         X")
+        
+        # Generate 125 X nodes (matching working example: 124 elements)
+        electrode_x_positions = [elec["x"] for elec in electrodes]
+        x_min = min(electrode_x_positions) - 50  # Add padding
+        x_max = max(electrode_x_positions) + 50
+        x_nodes = np.linspace(x_min, x_max, 125)  # 125 nodes → 124 elements
+        
+        for i, x_coord in enumerate(x_nodes):
+            out_lines.append(f"  {i+1:d},        {x_coord:8.3f}")
+        
+        out_lines.append("")
+        out_lines.append(";------ NODE LOCATION IN Y (m) ------")
+        out_lines.append("")
+        out_lines.append("Node          Y")
+        
+        # Generate 22 Y nodes (matching working example: 21 elements) 
+        # Y represents depth (negative values)
+        max_depth = 67.0  # From working example ROI
+        # Create depth progression similar to EarthImager 2D (increasing with depth)
+        depth_factors = np.array([0, 0.02, 0.05, 0.08, 0.12, 0.16, 0.21, 0.27, 0.34, 0.42, 
+                                 0.51, 0.61, 0.72, 0.84, 0.97, 1.11, 1.26, 1.42, 1.59, 1.77, 1.96, 2.16])
+        y_nodes = -depth_factors * (max_depth / 2.16)  # Scale to max depth, negative for depth
+        
+        for i, y_coord in enumerate(y_nodes):
+            out_lines.append(f"  {i+1:d},        {y_coord:8.3f}")
+        
+        out_lines.append("")
+        
         # Commands and raw data
         out_lines.append(";------ Commands, Raw V/I, GeomFactor, AppRes ------")
         out_lines.append("")
