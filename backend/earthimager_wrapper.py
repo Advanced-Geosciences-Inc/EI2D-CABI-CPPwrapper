@@ -104,6 +104,13 @@ class EI2DWrapper:
         q1 = np.array([1], dtype=np.int32)
         q2 = np.array([nNy - 1], dtype=np.int32)  # FIX: Use element bounds, not node bounds
         
+        # CRITICAL DEBUG: Log exact values being used
+        print(f"🔍 DEBUG MESH SETUP:")
+        print(f"   Node dimensions: nNx={nNx}, nNy={nNy}")
+        print(f"   Expected elements: gNumElemX={nNx-1}, gNumElemY={nNy-1}, gNumElem={(nNx-1)*(nNy-1)}")
+        print(f"   Parameter bounds: p1={p1[0]}, p2={p2[0]}, q1={q1[0]}, q2={q2[0]}")
+        print(f"   Max possible iElem = {q2[0]} + ({p2[0]}-1) * {nNy-1} = {q2[0] + (p2[0]-1) * (nNy-1)}")
+        
         # Initialize engine
         self.lib.ei2d_InitForwGlobals(
             nData,          # NumData
