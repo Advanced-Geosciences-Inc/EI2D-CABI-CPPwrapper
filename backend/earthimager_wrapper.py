@@ -949,7 +949,10 @@ class EI2DRealDataProcessor:
         return updated_model
     
     def _generate_inversion_mesh(self, electrodes: List, measurements: List) -> Dict[str, Any]:
-        """Generate mesh suitable for inversion (following EI2D mesh generation)"""
+        """Generate mesh suitable for inversion (CRITICAL FIX: Use same conservative mesh as forward modeling)"""
+        
+        # CRITICAL FIX: Use the same conservative mesh generation as forward modeling
+        # to avoid array bounds errors in Fortran routines
         
         # Extract electrode positions
         x_positions = sorted([elec['x'] for elec in electrodes])
@@ -957,55 +960,23 @@ class EI2DRealDataProcessor:
         if len(x_positions) > 1:
             electrode_spacing = x_positions[1] - x_positions[0]
         
-        # EarthImager 2D mesh generation logic:
-        # 1. Add nodes at half-electrode spacing
-        # 2. Extend mesh beyond electrode array
-        # 3. Add depth layers with increasing thickness
+        print(f"CRITICAL FIX: Using conservative mesh generation for inversion (same as forward modeling)")
         
-        # Surface nodes (refined mesh)
-        min_x = min(x_positions) 
-        max_x = max(x_positions)
-        array_length = max_x - min_x
+        # Use electrode positions directly for X coordinates (conservative approach)
+        mesh_x_coords = x_positions.copy()
         
-        # Add padding (typically 1-2 array lengths on each side)
-        padding = array_length * 1.5
-        mesh_x_min = min_x - padding
-        mesh_x_max = max_x + padding
+        # Add minimal padding (just 1 electrode spacing on each side)
+        min_x = min(mesh_x_coords)
+        max_x = max(mesh_x_coords)
+        mesh_x_coords.insert(0, min_x - electrode_spacing)
+        mesh_x_coords.append(max_x + electrode_spacing)
         
-        # Refined x-coordinates (half spacing near electrodes)
-        mesh_x = []
+        # Conservative Y coordinates (minimal depth layers)
+        mesh_y_coords = [0.0, electrode_spacing * 0.5, electrode_spacing * 1.5, 
+                        electrode_spacing * 3.0, electrode_spacing * 6.0]
         
-        # Left padding with coarser spacing
-        x = mesh_x_min
-        while x < min_x - electrode_spacing:
-            mesh_x.append(x)
-            x += electrode_spacing * 2.0  # Coarser spacing
-            
-        # Fine spacing in electrode region
-        x = min_x - electrode_spacing
-        while x <= max_x + electrode_spacing:
-            mesh_x.append(x)
-            x += electrode_spacing * 0.5  # Half spacing
-            
-        # Right padding with coarser spacing  
-        x = max_x + electrode_spacing * 2.0
-        while x <= mesh_x_max:
-            mesh_x.append(x)
-            x += electrode_spacing * 2.0
-        
-        # Y-coordinates (depth layers)
-        mesh_y = [0.0]  # Surface
-        
-        # Add depth layers with geometric progression
-        depth = 0.0
-        layer_thickness = electrode_spacing * 0.25  # Start with quarter spacing
-        for i in range(11):  # 11 depth layers
-            depth += layer_thickness
-            mesh_y.append(depth)
-            layer_thickness *= 1.3  # Increase thickness with depth
-        
-        nodes_x = len(mesh_x)
-        nodes_y = len(mesh_y)
+        nodes_x = len(mesh_x_coords)
+        nodes_y = len(mesh_y_coords)
         total_nodes = nodes_x * nodes_y
         total_elements = (nodes_x - 1) * (nodes_y - 1)
         
@@ -1014,11 +985,16 @@ class EI2DRealDataProcessor:
         param_y = nodes_y - 1  # Use actual element count in Y direction  
         num_parameters = param_x * param_y
         
+        print(f"CRITICAL FIX: Conservative inversion mesh: {nodes_x}×{nodes_y} = {total_nodes} nodes, {total_elements} elements")
         print(f"CRITICAL FIX: Using actual mesh element dimensions: {param_x}×{param_y} = {num_parameters} parameters")
         
+        # Validate mesh dimensions are reasonable (same as forward modeling)
+        if total_nodes > 1000 or total_elements > 500:
+            raise Exception(f"Mesh too large: {total_nodes} nodes, {total_elements} elements. Reducing for safety.")
+        
         return {
-            "mesh_x": mesh_x,
-            "mesh_y": mesh_y,
+            "mesh_x": mesh_x_coords,
+            "mesh_y": mesh_y_coords,
             "nodes_x": nodes_x,
             "nodes_y": nodes_y,
             "total_nodes": total_nodes,
@@ -1027,7 +1003,7 @@ class EI2DRealDataProcessor:
             "param_y": param_y,
             "num_parameters": num_parameters,
             "electrode_spacing": electrode_spacing,
-            "array_length": array_length
+            "array_length": max_x - min_x
         }
     
     def _setup_inversion_model(self, mesh_result: Dict, start_res: float, 
