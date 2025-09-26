@@ -77,6 +77,91 @@ def calculate_geophysical_roi(electrodes, mesh_info=None):
     
     return roi
 
+def parse_mesh_size_section(lines):
+    """Parse the MESH SIZE section to get proper ROI parameters"""
+    mesh_info = {}
+    
+    _, mesh_block = extract_section(lines, ";------ MESH SIZE ------", ";------")
+    
+    if mesh_block:
+        for line in mesh_block:
+            line = line.strip()
+            if not line or line.startswith(";"):
+                continue
+                
+            # Extract key mesh parameters for ROI calculation
+            if "Number of elements in Y" in line and "=" in line:
+                mesh_info['elements_y'] = int(line.split("=")[1].strip())
+            elif "Number of parameters in Y" in line and "=" in line:
+                mesh_info['param_y'] = int(line.split("=")[1].strip())
+            elif "Number of bottom elements" in line and "=" in line:
+                mesh_info['bottom_elements'] = int(line.split("=")[1].strip())
+            elif "Number of top elements" in line and "=" in line:
+                mesh_info['top_elements'] = int(line.split("=")[1].strip())
+            elif "Number of left elements" in line and "=" in line:
+                mesh_info['left_elements'] = int(line.split("=")[1].strip())
+            elif "Number of right elements" in line and "=" in line:
+                mesh_info['right_elements'] = int(line.split("=")[1].strip())
+    
+    return mesh_info
+
+def calculate_geophysical_roi_dynamic(electrodes, mesh_info, x_nodes, y_nodes):
+    """Calculate ROI using actual EarthImager 2D mesh parameters"""
+    if not electrodes or not mesh_info:
+        return None
+        
+    x_coords = [e['x'] for e in electrodes]
+    
+    # Survey extent (electrode array bounds) 
+    x_min = min(x_coords)
+    x_max = max(x_coords)
+    survey_length = x_max - x_min
+    
+    # Calculate ROI bounds using mesh information
+    roi_x_min = x_min
+    roi_x_max = x_max
+    
+    # Dynamic depth calculation based on mesh parameters
+    if len(y_nodes) > 1 and 'bottom_elements' in mesh_info:
+        # Calculate element centroids from nodes
+        depth_centroids = -0.5 * (y_nodes[:-1] + y_nodes[1:])  # Negative Y becomes positive depth
+        
+        # Exclude bottom elements from ROI (these are unreliable/padding)
+        n_bottom = mesh_info.get('bottom_elements', 0)
+        n_top = mesh_info.get('top_elements', 0)
+        
+        # ROI includes reliable elements (excluding bottom padding)
+        if len(depth_centroids) > n_bottom + n_top:
+            roi_depth_elements = depth_centroids[n_top:len(depth_centroids)-n_bottom] if n_bottom > 0 else depth_centroids[n_top:]
+            roi_depth_max = max(roi_depth_elements) if len(roi_depth_elements) > 0 else survey_length * 0.15
+        else:
+            roi_depth_max = survey_length * 0.15  # Fallback
+        
+        print(f"Mesh-based ROI calculation:")
+        print(f"  Total Y elements: {len(depth_centroids)}")
+        print(f"  Bottom elements (excluded): {n_bottom}")
+        print(f"  Top elements (excluded): {n_top}")
+        print(f"  ROI depth elements: {len(roi_depth_elements) if 'roi_depth_elements' in locals() else 'fallback'}")
+        print(f"  Calculated ROI depth: {roi_depth_max:.1f} m")
+        
+    else:
+        # Fallback to percentage rule
+        roi_depth_max = survey_length * 0.15
+        print(f"Using fallback 15% rule: {roi_depth_max:.1f} m")
+    
+    roi = {
+        'x_min': roi_x_min,
+        'x_max': roi_x_max, 
+        'depth_min': 0.0,
+        'depth_max': roi_depth_max,
+        'survey_length': survey_length,
+        'electrode_spacing': survey_length / (len(electrodes) - 1) if len(electrodes) > 1 else 1.0
+    }
+    
+    print(f"Final EarthImager 2D ROI: X=[{roi_x_min:.1f}, {roi_x_max:.1f}], Depth=[0.0, {roi_depth_max:.1f}]")
+    
+    return roi
+
 def parse_node_coordinates(raw_lines):
     """Parse 'Node, value' lines (skip the 2-row header)."""
     coords = []
