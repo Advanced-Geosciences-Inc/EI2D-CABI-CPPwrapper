@@ -375,8 +375,40 @@ class EI2DRealDataProcessor:
                     nodeX[idx] = mesh_x_coords[i]
                     nodeY[idx] = mesh_y_coords[j]
             
-            # Homogeneous conductivity model (conservative)
-            cond = np.full(nElem, 0.01, dtype=np.float64)  # 100 ohm-m
+            # Create REALISTIC heterogeneous conductivity model
+            # This is essential for forward modeling to produce non-zero V/I values
+            cond = np.zeros(nElem, dtype=np.float64)
+            
+            # Create layered earth model with depth-varying resistivity
+            elements_per_layer = (nNx - 1)  # Elements in each horizontal layer
+            
+            for elem_idx in range(nElem):
+                # Calculate element position
+                elem_x = elem_idx % elements_per_layer
+                elem_y = elem_idx // elements_per_layer
+                
+                # Layer-based resistivity model
+                if elem_y == 0:  # Surface layer (0-0.5m depth)
+                    resistivity = 50.0  # 50 Ω·m - topsoil
+                elif elem_y == 1:  # Shallow layer (0.5-1.0m depth)
+                    resistivity = 100.0  # 100 Ω·m - weathered rock
+                elif elem_y == 2:  # Medium layer (1.0-1.5m depth) 
+                    resistivity = 200.0  # 200 Ω·m - fractured bedrock
+                else:  # Deep layers (>1.5m depth)
+                    resistivity = 500.0  # 500 Ω·m - solid bedrock
+                
+                # Add lateral heterogeneity for more realistic model
+                if elem_x < elements_per_layer // 3:
+                    resistivity *= 0.8  # Lower resistivity zone (e.g., clay)
+                elif elem_x > 2 * elements_per_layer // 3:  
+                    resistivity *= 1.5  # Higher resistivity zone (e.g., dry rock)
+                
+                cond[elem_idx] = 1.0 / resistivity  # Convert to conductivity
+            
+            print(f"Created heterogeneous conductivity model:")
+            print(f"  Surface layer: ~{1.0/cond[0]:.1f} Ω·m")
+            print(f"  Deep layer: ~{1.0/cond[-1]:.1f} Ω·m")
+            print(f"  Conductivity range: {np.min(cond):.6f} to {np.max(cond):.6f} S/m")
             
             # CRITICAL FIX: Electrode mapping with bounds checking
             nInf = 1
