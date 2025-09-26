@@ -773,9 +773,12 @@ class EI2DRealDataProcessor:
                 
                 print(f"Iteration {iteration}: RMS = {rms_error:.3f}%, Layer contrast = {iteration_info['layer_contrast']:.1f}")
                 
-                # Check convergence (realistic for layered models)
-                if rms_error < max_rms or iteration >= 4:  # Convergence in 3-4 iterations
-                    print(f"Realistic simulation converged at iteration {iteration}")
+                # Check convergence (proper RMS-based stopping criteria)
+                if rms_error < max_rms:  # Stop only when RMS target is achieved
+                    print(f"Realistic simulation converged at iteration {iteration} (RMS: {rms_error:.3f}%)")
+                    break
+                elif iteration >= max_iterations:  # Or when max iterations reached
+                    print(f"Reached maximum iterations {iteration} (RMS: {rms_error:.3f}%)")
                     break
             
             final_contrast = np.max(current_resistivities) / np.min(current_resistivities)
