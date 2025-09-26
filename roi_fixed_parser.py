@@ -270,7 +270,7 @@ def main():
     print(f"File contains {len(lines)} lines")
 
     # Step 1: Parse electrode locations to determine ROI
-    print("\n=== STEP 1: Determine geophysical ROI ===")
+    print("\n=== STEP 1: Determine EarthImager 2D ROI ===")
     electrodes = parse_electrode_locations(lines)
     if electrodes:
         roi = calculate_geophysical_roi(electrodes)
@@ -278,7 +278,7 @@ def main():
             raise SystemExit("❌ Could not calculate meaningful ROI")
     else:
         print("⚠️  No electrode locations found, using default ROI")
-        roi = {'x_min': 0, 'x_max': 50, 'depth_min': 0, 'depth_max': 15, 'survey_length': 50}
+        roi = {'x_min': 0, 'x_max': 50, 'depth_min': 0, 'depth_max': 7.5, 'survey_length': 50}
 
     # Step 2: Parse grid and resistivity data
     print("\n=== STEP 2: Parse resistivity model ===")
