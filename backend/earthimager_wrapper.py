@@ -624,35 +624,28 @@ class EI2DRealDataProcessor:
                 mesh_result, start_res, min_res, max_res, lagrange, max_iterations
             )
             
-            # Step 3: USE SAFE SIMULATION (temporarily skip real C-ABI due to Fortran array bounds issue)
-            # The real C-ABI inversion encounters array bounds errors in Sensitivity.f90 line 350
-            print("SAFETY: Using enhanced simulation to avoid Fortran array bounds errors")
-            print("(Real C-ABI inversion temporarily disabled until array indexing issue is fully resolved)")
-            
-            # Use SAFE inversion simulation
-            inversion_result = self._run_safe_inversion_simulation(
-                mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
-            )
-            
-            # TODO: Re-enable real C-ABI once Fortran array bounds issue is completely resolved
-            # if self.lib:
-            #     try:
-            #         print("ATTEMPTING REAL C-ABI INVERSION: Array bounds error should be fixed")
-            #         inversion_result = self._run_inversion_iterations(
-            #             mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
-            #         )
-            #         print("✅ SUCCESS: Real C-ABI inversion completed without errors!")
-            #     except Exception as e:
-            #         print(f"❌ Real C-ABI inversion failed: {e}")
-            #         print("Falling back to enhanced simulation")
-            #         inversion_result = self._run_safe_inversion_simulation(
-            #             mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
-            #         )
-            # else:
-            #     print("SAFETY: Using enhanced simulation (no library available)")
-            #     inversion_result = self._run_safe_inversion_simulation(
-            #         mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
-            #     )
+            # Step 3: TRY REAL C-ABI INVERSION (array bounds should be fixed now)
+            if self.lib:
+                try:
+                    print("ATTEMPTING REAL C-ABI INVERSION: Array bounds fixes applied, library available")
+                    inversion_result = self._run_inversion_iterations(
+                        mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                    )
+                    print("✅ SUCCESS: Real C-ABI inversion completed without errors!")
+                except Exception as e:
+                    print(f"❌ Real C-ABI inversion failed: {e}")
+                    print(f"   Error details: {str(e)[:200]}...")
+                    print("Falling back to enhanced simulation")
+                    # Fallback: Run SAFE inversion simulation
+                    inversion_result = self._run_safe_inversion_simulation(
+                        mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                    )
+            else:
+                print("SAFETY: Using enhanced simulation (no library available)")
+                # Use SAFE inversion simulation
+                inversion_result = self._run_safe_inversion_simulation(
+                    mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                )
             
             # Step 4: Generate OUT file with proper format
             out_file_content = self._generate_out_file(
