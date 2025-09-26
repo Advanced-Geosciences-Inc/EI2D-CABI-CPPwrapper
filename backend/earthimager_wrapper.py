@@ -591,7 +591,7 @@ class EI2DRealDataProcessor:
             
             max_iterations = int(resinv_params.get("MaxNumInvIter", "20"))
             lagrange = float(resinv_params.get("Lagrange", "10"))
-            start_res = float(resinv_params.get("StartRes", "147.92"))  # Use toy-14-dd reference value
+            start_res = float(resinv_params.get("StartRes", "1"))  # Use actual INI value
             min_res = float(resinv_params.get("MinResis", "1"))  
             max_res = float(resinv_params.get("MaxResis", "100000"))
             max_rms = float(resinv_params.get("MaxRMSRes", "2"))
