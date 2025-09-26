@@ -1009,10 +1009,10 @@ class EI2DRealDataProcessor:
         total_nodes = nodes_x * nodes_y
         total_elements = (nodes_x - 1) * (nodes_y - 1)
         
-        # Parameters (FIXED to match reference: 30×7=210)
-        param_x = 30  # Match reference: "Number of parameters in X = 30"
-        param_y = 7   # Match reference: "Number of parameters in Y = 7"
-        num_parameters = param_x * param_y  # = 210
+        # Parameters (CRITICAL FIX: Use actual mesh element dimensions, not fixed values)
+        param_x = nodes_x - 1  # Use actual element count in X direction
+        param_y = nodes_y - 1  # Use actual element count in Y direction  
+        num_parameters = param_x * param_y
         
         print(f"Fixed mesh parameters: {param_x}×{param_y} = {num_parameters} (matching reference)")
         
