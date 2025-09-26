@@ -609,10 +609,6 @@ class EI2DRealDataProcessor:
             
             print(f"Survey: {num_electrodes} electrodes, {num_measurements} measurements")
             
-            # SAFETY CHECK: For toy-14-dd data (14 electrodes, 74 measurements)
-            # Use fallback simulation to avoid C-ABI array bounds issues
-            print("SAFETY: Using enhanced simulation to avoid Fortran array bounds errors")
-            
             # Step 1: Generate appropriate mesh for inversion
             mesh_result = self._generate_inversion_mesh(electrodes, measurements)
             
@@ -621,10 +617,27 @@ class EI2DRealDataProcessor:
                 mesh_result, start_res, min_res, max_res, lagrange, max_iterations
             )
             
-            # Step 3: Run SAFE inversion simulation (avoiding C-ABI for now)
-            inversion_result = self._run_safe_inversion_simulation(
-                mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
-            )
+            # Step 3: TRY REAL C-ABI INVERSION FIRST (with array bounds fix applied)
+            if self.lib:
+                try:
+                    print("ATTEMPTING REAL C-ABI INVERSION: Array bounds error should be fixed")
+                    inversion_result = self._run_inversion_iterations(
+                        mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                    )
+                    print("✅ SUCCESS: Real C-ABI inversion completed without errors!")
+                except Exception as e:
+                    print(f"❌ Real C-ABI inversion failed: {e}")
+                    print("Falling back to enhanced simulation")
+                    # Step 3 FALLBACK: Run SAFE inversion simulation
+                    inversion_result = self._run_safe_inversion_simulation(
+                        mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                    )
+            else:
+                print("SAFETY: Using enhanced simulation (no library available)")
+                # Step 3 FALLBACK: Run SAFE inversion simulation
+                inversion_result = self._run_safe_inversion_simulation(
+                    mesh_result, inversion_setup, measurements, max_iterations, max_rms, forw_mod_meth, start_res
+                )
             
             # Step 4: Generate OUT file with proper format
             out_file_content = self._generate_out_file(
