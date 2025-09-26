@@ -1059,7 +1059,7 @@ class EI2DRealDataProcessor:
     
     def _run_inversion_iterations(self, mesh_result: Dict, inversion_setup: Dict,
                                  measurements: List, max_iterations: int, 
-                                 max_rms: float, forw_mod_meth: int) -> Dict[str, Any]:
+                                 max_rms: float, forw_mod_meth: int, start_res: float) -> Dict[str, Any]:
         """Run inversion iterations using real EI2D Fortran routines"""
         
         try:
