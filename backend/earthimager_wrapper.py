@@ -1055,18 +1055,18 @@ class EI2DRealDataProcessor:
             
             # Initialize inversion system
             if self.lib:
-                # Initialize inversion engine
+                # Initialize inversion engine (CRITICAL FIX: Use same parameter setup as forward modeling)
                 self.lib.ei2d_InitInvGlobals(
                     num_measurements,               # NumData
-                    mesh_result["nodes_x"] - 1,     # NumElemX (FIXED: element dim, not node dim)
-                    mesh_result["nodes_y"] - 1,     # NumElemY (FIXED: element dim, not node dim)
-                    mesh_result["param_x"],         # NumParamX
-                    mesh_result["param_y"],         # NumParamY
+                    mesh_result["nodes_x"] - 1,     # NumElemX (element dim, not node dim)
+                    mesh_result["nodes_y"] - 1,     # NumElemY (element dim, not node dim)
+                    1,                              # NumParamX (CRITICAL FIX: Use 1 like forward modeling)
+                    1,                              # NumParamY (CRITICAL FIX: Use 1 like forward modeling)
                     0,                              # InvMethod (0=PCGLS)
                     0,                              # IPInvMethod (no IP)
                     10,                             # MaxNumIterInvCG
                     0,                              # IPPosMeth
-                    0.2,                    # ModResoFactor
+                    0.2,                            # ModResoFactor
                     1.0,                    # EpsilonD
                     1.0                     # EpsilonM
                 )
