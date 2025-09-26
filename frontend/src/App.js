@@ -202,43 +202,37 @@ const EarthImagerInterface = () => {
       return;
     }
 
-    try {
-      const content = results.out_file.content;
-      console.log('OUT file content length:', content.length);
-      console.log('First 500 chars:', content.substring(0, 500));
-      
-      // Method 1: Try data URL approach
-      const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'earthimager_inversion_results.out';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      
-      // Force click with user interaction
-      setTimeout(() => {
-        a.click();
-        document.body.removeChild(a);
-        setStatus('OUT file download initiated - check Downloads folder');
-      }, 100);
-      
-    } catch (error) {
-      console.error('Download error:', error);
-      
-      // Fallback: Show content in new window for manual save
-      try {
-        const content = results.out_file.content;
-        const newWindow = window.open('', '_blank');
-        newWindow.document.write('<pre>' + content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
-        newWindow.document.title = 'EarthImager Inversion Results - Save As .out file';
-        setStatus('OUT file opened in new window - use Ctrl+S to save as .out file');
-      } catch (fallbackError) {
-        setStatus(`Download failed: ${error.message}. Try copying content from console.`);
-        console.log('=== OUT FILE CONTENT (copy this to save manually) ===');
-        console.log(results.out_file.content);
-        console.log('=== END OUT FILE CONTENT ===');
-      }
-    }
+    // Simple approach: show content in a modal/textarea for manual copying
+    const content = results.out_file.content;
+    const contentWindow = window.open('', '_blank', 'width=800,height=600');
+    contentWindow.document.write(`
+      <html>
+        <head>
+          <title>EarthImager Inversion Results</title>
+          <style>
+            body { font-family: monospace; margin: 20px; }
+            textarea { width: 100%; height: 500px; font-family: monospace; }
+            .instructions { background: #f0f8ff; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="instructions">
+            <strong>Instructions:</strong>
+            <ol>
+              <li>Select all text in the box below (Ctrl+A or Cmd+A)</li>
+              <li>Copy it (Ctrl+C or Cmd+C)</li>
+              <li>Open a text editor (Notepad, TextEdit, etc.)</li>
+              <li>Paste the content (Ctrl+V or Cmd+V)</li>
+              <li>Save as "earthimager_results.out"</li>
+            </ol>
+          </div>
+          <h3>EarthImager 2D Inversion Results (${content.length} characters)</h3>
+          <textarea readonly>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+        </body>
+      </html>
+    `);
+    
+    setStatus('OUT file content opened in new window - follow instructions to save manually');
   };
 
   const runRealForwardModel = async () => {
