@@ -756,9 +756,9 @@ class EI2DRealDataProcessor:
                                            m["electrode_m"]["x"], m["electrode_n"]["x"]] for m in measurements[:10]]
                 },
                 "mesh": {
-                    "node_x": [float(x) for x in nodeX],
-                    "node_y": [float(y) for y in nodeY],
-                    "conductivity": [float(c) for c in cond],
+                    "node_x": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in nodeX],
+                    "node_y": [float(y) if not (np.isnan(y) or np.isinf(y)) else 0.0 for y in nodeY],
+                    "conductivity": [float(c) if not (np.isnan(c) or np.isinf(c)) else 0.01 for c in cond],
                     "mesh_x_coords": mesh_x_coords,
                     "mesh_y_coords": mesh_y_coords
                 },
