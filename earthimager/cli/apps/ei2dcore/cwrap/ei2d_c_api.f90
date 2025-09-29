@@ -144,16 +144,17 @@ subroutine ei2d_ForwardFD(NodeX, NodeY, Cond, VIcalc, Jacobian,                 
     end do
   end if
 
-  ! parameter windows across full grid extents
+  ! CRITICAL FIX: Use actual parameter bounds passed from C, not full grid extents
+  ! ParamX1/X2/Y1/Y2 should define ELEMENT bounds, not node bounds
   allocate(px1(gNumParamX), px2(gNumParamX))
   allocate(py1(gNumParamY), py2(gNumParamY))
   do i = 1, gNumParamX
-    px1(i) = 1
-    px2(i) = gNumNodeX
+    px1(i) = ParamX1(i)
+    px2(i) = ParamX2(i)
   end do
   do i = 1, gNumParamY
-    py1(i) = 1
-    py2(i) = gNumNodeY
+    py1(i) = ParamY1(i)
+    py2(i) = ParamY2(i)
   end do
 
   ! infinite electrodes (if none, pass a single zero to satisfy dummy shape)
