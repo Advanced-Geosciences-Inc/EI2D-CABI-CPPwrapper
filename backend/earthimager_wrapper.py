@@ -1832,8 +1832,18 @@ class EI2DRealDataProcessor:
                     error_factor = max(0.01, 0.1 / iteration)
                     vi_calc = vi_meas * (1.0 + np.random.normal(0, error_factor))
                 
+                # CRITICAL JSON SERIALIZATION FIX: Sanitize NaN/infinity values
+                if np.isnan(vi_meas) or np.isinf(vi_meas):
+                    vi_meas = 0.0
+                if np.isnan(vi_calc) or np.isinf(vi_calc):
+                    vi_calc = vi_meas if not (np.isnan(vi_meas) or np.isinf(vi_meas)) else 0.0
+                
                 # Calculate percent error
                 vi_error = (vi_calc - vi_meas) / vi_meas * 100 if vi_meas != 0 else 0.0
+                
+                # CRITICAL JSON SERIALIZATION FIX: Sanitize error calculation
+                if np.isnan(vi_error) or np.isinf(vi_error):
+                    vi_error = 0.0
                 
                 out_lines.append("  {:d},   {:12.5E},  {:12.5E},  {:5.2f}".format(
                     i + 1, vi_meas, vi_calc, vi_error))
