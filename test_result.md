@@ -161,6 +161,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "🎉 CRITICAL C-ABI LIBRARY FIX VERIFIED: Successfully resolved the missing 'getpositivityvec_' symbol issue. Real C-ABI forward modeling now working with method 'real_ei2d_forward_fd_fixed'. Fortran functions (InitForwGlobals, SetNumParamForward, ForwardFD) complete successfully without undefined symbol errors. Library loads correctly and produces 74 finite, non-zero V/I values (-757 to -26,444 V/A). No backend hanging or crashes detected. GetJacobian=0 works without array bounds errors. The C-ABI library compilation fix has been successfully verified."
+      - working: true
+        agent: "testing"
+        comment: "✅ JSON SERIALIZATION FIX VERIFIED: Comprehensive NaN/infinity sanitization successfully applied to all float array conversions. Forward modeling API /api/earthimager/forward-model-real returns valid JSON response with 74 finite V/I values and apparent resistivities. No 'Out of range float values are not JSON compliant' errors detected. All mesh data (node_x, node_y, conductivity) properly sanitized using [float(x) if not (np.isnan(x) or np.isinf(x)) else safe_default] pattern. JSON serialization fix working correctly for toy-14-dd dataset."
 
   - task: "Inversion Workflow with OUT File Generation"
     implemented: true
