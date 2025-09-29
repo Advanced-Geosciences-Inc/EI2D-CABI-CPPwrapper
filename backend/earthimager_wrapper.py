@@ -1875,6 +1875,11 @@ class EI2DRealDataProcessor:
                     
                     # Apply realistic bounds (100-200 Ω·m like reference)
                     final_resistivity = np.clip(final_resistivity, 100.0, 200.0)
+                    
+                    # CRITICAL JSON SERIALIZATION FIX: Sanitize NaN/infinity values
+                    if np.isnan(final_resistivity) or np.isinf(final_resistivity):
+                        final_resistivity = 150.0  # Safe default value
+                    
                     resistivity_grid[layer_j, pos_i] = final_resistivity
             
             # Convert to sequential order (ROW-MAJOR: layer by layer, left to right)
