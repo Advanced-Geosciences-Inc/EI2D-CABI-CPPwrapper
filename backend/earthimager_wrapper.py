@@ -678,9 +678,9 @@ class EI2DRealDataProcessor:
                     "electrode_spacing": electrode_spacing
                 },
                 "results": {
-                    # CRITICAL DEBUG: Check VI array before conversion
-                    "vi_data": [float(vi) if np.isfinite(vi) and not np.isnan(vi) else 0.0 for vi in VI],
-                    "apparent_resistivities": apparent_resistivities,
+                    # PRESERVE VALID FORTRAN VALUES: Only convert NaN to zero, keep valid values
+                    "vi_data": [float(vi) if np.isfinite(vi) else 0.0 for vi in VI],
+                    "apparent_resistivities": [float(ar) if np.isfinite(ar) else 0.0 for ar in apparent_resistivities],
                     "geometric_factors": geometric_factors,
                     "electrode_positions": [[e['x'], e['y'], e['z']] for e in electrodes],
                     "measurement_configs": [[m["electrode_a"]["x"], m["electrode_b"]["x"], 
