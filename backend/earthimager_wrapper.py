@@ -495,8 +495,13 @@ class EI2DRealDataProcessor:
                 0.0,                    # MinTxRxSep
                 0.0                     # MaxTxRxSep
             )
+            print("InitForwGlobals completed successfully!")
             
-            print("InitForwGlobals completed successfully")
+            # CRITICAL FIX: Set parameter dimensions to prevent array bounds error
+            # This is essential for proper Sensitivity.f90 operation
+            print(f"Setting parameter dimensions: nParamX={nParamX}, nParamY={nParamY}")  
+            self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
+            print("SetNumParamForward completed successfully!")
             
             # Set conservative parameter regions
             self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
