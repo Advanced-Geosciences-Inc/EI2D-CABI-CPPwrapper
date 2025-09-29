@@ -1905,6 +1905,11 @@ class EI2DRealDataProcessor:
                 # Realistic sensitivity values (order 1e-5 to 5e-5 like reference)
                 base_sensitivity = 3.0e-5
                 sensitivity = base_sensitivity * (0.5 + 1.0 * np.random.random())  # 0.5-1.5 times base
+                
+                # CRITICAL JSON SERIALIZATION FIX: Sanitize NaN/infinity values
+                if np.isnan(sensitivity) or np.isinf(sensitivity):
+                    sensitivity = 3.0e-5  # Safe default value
+                
                 sensitivity_values.append(sensitivity)
             
             print(f"Generated {len(sensitivity_values)} sensitivity values")
