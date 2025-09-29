@@ -601,10 +601,19 @@ class EI2DRealDataProcessor:
             print(f"Fortran VI array analysis:")
             print(f"  Sum: {np.sum(VI)}")
             print(f"  Non-zero count: {np.count_nonzero(VI)}")
+            print(f"  NaN count: {np.sum(np.isnan(VI))}")
+            print(f"  Finite count: {np.sum(np.isfinite(VI))}")
             print(f"  Min/Max: {np.min(VI):.6f} / {np.max(VI):.6f}")
-            if np.count_nonzero(VI) > 0:
-                print(f"  🎉 SUCCESS: Fortran computed real V/I values!")
+            
+            # CRITICAL FIX: Check for valid finite non-zero values, not just non-zero
+            # NaN values are considered non-zero by numpy but are invalid
+            valid_values = np.isfinite(VI) & (VI != 0.0)
+            valid_count = np.sum(valid_values)
+            
+            if valid_count > 0:
+                print(f"  🎉 SUCCESS: Fortran computed {valid_count} valid V/I values!")
                 print(f"  First 5 values: {VI[:5]}")
+                print(f"  Valid sample values: {VI[valid_values][:5]}")
                 # Use the real Fortran values!
             else:
                 print(f"  ⚠️ Fortran returned zeros - using physics-based fallback")
