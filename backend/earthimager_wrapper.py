@@ -901,9 +901,9 @@ class EI2DRealDataProcessor:
                     "parameters": int(mesh_result["num_parameters"])
                 },
                 "results": {
-                    "resistivity_model": [float(x) for x in inversion_result.get("final_resistivities", [])],
-                    "calculated_data": [float(x) for x in inversion_result.get("calculated_data", [])],
-                    "data_residuals": [float(x) for x in inversion_result.get("data_residuals", [])],
+                    "resistivity_model": [float(x) if not (np.isnan(x) or np.isinf(x)) else 1.0 for x in inversion_result.get("final_resistivities", [])],
+                    "calculated_data": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in inversion_result.get("calculated_data", [])],
+                    "data_residuals": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in inversion_result.get("data_residuals", [])],
                     "iteration_history": inversion_result.get("iteration_history", [])
                 },
                 "out_file": {
