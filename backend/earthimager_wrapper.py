@@ -224,9 +224,9 @@ class EI2DWrapper:
                 "nData": nData,
                 "VI": converted_vi,
                 "stingCMD": stingCMD.reshape(-1, 4).tolist(),
-                "nodeX": [float(x) for x in nodeX],
-                "nodeY": [float(y) for y in nodeY],
-                "conductivity": [float(c) for c in cond],
+                "nodeX": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in nodeX],
+                "nodeY": [float(y) if not (np.isnan(y) or np.isinf(y)) else 0.0 for y in nodeY],
+                "conductivity": [float(c) if not (np.isnan(c) or np.isinf(c)) else 0.01 for c in cond],
                 "message": f"Forward modeling completed successfully. {nData} data points computed."
             }
             
