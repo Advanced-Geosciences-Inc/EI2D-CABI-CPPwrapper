@@ -186,6 +186,35 @@ class EI2DWrapper:
             print(f"   Sample raw values: {VI[:5]}")
             print(f"   Sample converted: {[float(vi) if np.isfinite(vi) and not np.isnan(vi) else 0.0 for vi in VI[:5]]}")
             
+            # DEBUG: Check what the VI array contains and how conversion works
+            valid_count = 0
+            nan_count = 0
+            zero_count = 0
+            
+            for i, vi in enumerate(VI[:10]):
+                if np.isnan(vi):
+                    nan_count += 1
+                elif vi == 0.0:
+                    zero_count += 1
+                else:
+                    valid_count += 1
+                    print(f"   VI[{i}] = {vi} (valid)")
+            
+            print(f"   First 10 analysis: {valid_count} valid, {nan_count} NaN, {zero_count} zeros")
+            
+            # Create converted array with detailed tracking
+            converted_vi = []
+            for i, vi in enumerate(VI):
+                if np.isnan(vi) or np.isinf(vi):
+                    converted_vi.append(0.0)
+                else:
+                    converted_vi.append(float(vi))
+                    if vi != 0.0 and i < 20:  # Log first 20 non-zero valid values
+                        print(f"   Preserving VI[{i}] = {vi}")
+            
+            total_valid_preserved = sum(1 for v in converted_vi if v != 0.0)
+            print(f"   Total valid values preserved: {total_valid_preserved}")
+
             return {
                 "success": True,
                 "nData": nData,
