@@ -904,7 +904,12 @@ class EI2DRealDataProcessor:
                     "resistivity_model": [float(x) if not (np.isnan(x) or np.isinf(x)) else 1.0 for x in inversion_result.get("final_resistivities", [])],
                     "calculated_data": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in inversion_result.get("calculated_data", [])],
                     "data_residuals": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in inversion_result.get("data_residuals", [])],
-                    "iteration_history": inversion_result.get("iteration_history", [])
+                    "iteration_history": [
+                        {
+                            k: (float(v) if not (np.isnan(v) or np.isinf(v)) else 0.0) if isinstance(v, (int, float, np.number)) else v
+                            for k, v in iter_data.items()
+                        } for iter_data in inversion_result.get("iteration_history", [])
+                    ]
                 },
                 "out_file": {
                     "content": out_file_content,
