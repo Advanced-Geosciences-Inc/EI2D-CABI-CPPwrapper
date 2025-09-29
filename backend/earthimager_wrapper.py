@@ -218,7 +218,7 @@ class EI2DWrapper:
             return {
                 "success": True,
                 "nData": nData,
-                "VI": [float(x) if np.isfinite(x) else 0.0 for x in VI],
+                "VI": converted_vi,
                 "stingCMD": stingCMD.reshape(-1, 4).tolist(),
                 "nodeX": [float(x) for x in nodeX],
                 "nodeY": [float(y) for y in nodeY],
