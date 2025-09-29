@@ -527,13 +527,13 @@ class EI2DRealDataProcessor:
             
             stingCMD = np.array(stingCMD, dtype=np.int32)
             
-            # CONSERVATIVE parameter windows to avoid array bounds errors
-            # Use minimal parameter regions with CORRECTED ELEMENT BOUNDS
+            # CRITICAL FIX: Parameter arrays must use ELEMENT bounds, not NODE bounds
+            # Use minimal parameter regions with CORRECTED ELEMENT BOUNDS 
             nParamX, nParamY = 1, 1  # Most conservative: single parameter region
             p1 = np.array([1], dtype=np.int32)
-            p2 = np.array([nNx - 1], dtype=np.int32)  # CRITICAL FIX: Element bounds, not node bounds
+            p2 = np.array([nNx - 1], dtype=np.int32)  # CRITICAL: Element bounds = nodes - 1
             q1 = np.array([1], dtype=np.int32)
-            q2 = np.array([nNy - 1], dtype=np.int32)  # CRITICAL FIX: Element bounds, not node bounds
+            q2 = np.array([nNy - 1], dtype=np.int32)  # CRITICAL: Element bounds = nodes - 1
             
             inf = np.array([num_electrodes + nInf], dtype=np.int32)
             
