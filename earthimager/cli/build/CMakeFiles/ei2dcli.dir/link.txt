@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/ei2dcli.dir/apps/ei2dcli/src/ei2dcli.cpp.o -o ei2dcli  -Wl,-rpath,/app/earthimager/cli/build libei2d_core.so -lopenblas /usr/lib/gcc/aarch64-linux-gnu/12/libgomp.so /usr/lib/aarch64-linux-gnu/libpthread.a 
