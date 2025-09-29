@@ -888,7 +888,7 @@ class EI2DRealDataProcessor:
                     "measurements": num_measurements,
                     "max_iterations": max_iterations,
                     "final_iteration": inversion_result.get("final_iteration", 0),
-                    "final_rms": float(inversion_result.get("final_rms", 0.0)),
+                    "final_rms": float(inversion_result.get("final_rms", 0.0)) if not (np.isnan(inversion_result.get("final_rms", 0.0)) or np.isinf(inversion_result.get("final_rms", 0.0))) else 0.0,
                     "forward_method": "FE" if forw_mod_meth == 1 else "FD",
                     "convergence": bool(inversion_result.get("converged", False)),
                     "start_resistivity": start_res
