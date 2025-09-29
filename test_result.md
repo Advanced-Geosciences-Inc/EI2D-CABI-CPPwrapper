@@ -231,6 +231,7 @@ test_plan:
     - "Inversion Workflow with OUT File Generation"
   test_all: false
   test_priority: "high_first"
+  current_issue: "Data transfer bug - backend computes non-zero V/I values but frontend displays zeros"
 
 agent_communication:
   - agent: "main"
