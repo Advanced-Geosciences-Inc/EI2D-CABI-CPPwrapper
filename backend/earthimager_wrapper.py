@@ -667,6 +667,25 @@ class EI2DRealDataProcessor:
                 print(f"  Range: {np.min(VI):.6f} to {np.max(VI):.6f} V/A")
                 print(f"  Non-zero count: {np.count_nonzero(VI)} / {len(VI)}")
                 print(f"  Sample values: {VI[:5]}")
+                
+                # CRITICAL DEBUG: Trace data flow from computation to JSON
+                print(f"\n🔍 DATA FLOW TRACING:")
+                print(f"1. VI array after computation:")
+                print(f"   Type: {type(VI)}, Shape: {VI.shape if hasattr(VI, 'shape') else 'N/A'}")
+                print(f"   First 5: {VI[:5]}")
+                print(f"   Last 5: {VI[-5:]}")
+                print(f"   Sum: {np.sum(VI)}")
+                
+                # Check what happens during conversion
+                test_converted = [float(vi) if not (np.isnan(vi) or np.isinf(vi)) else 0.0 for vi in VI[:5]]
+                print(f"2. Conversion test (first 5):")
+                print(f"   Original: {VI[:5]}")
+                print(f"   Converted: {test_converted}")
+                
+                # Check the VI array just before return
+                print(f"3. VI array just before return statement:")
+                print(f"   VI still exists: {VI is not None}")
+                print(f"   VI sum: {np.sum(VI) if VI is not None else 'None'}")
             
             # Convert to apparent resistivities
             apparent_resistivities = []
