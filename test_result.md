@@ -234,7 +234,7 @@ test_plan:
     - "Inversion Workflow with OUT File Generation" 
   test_all: false
   test_priority: "high_first"
-  current_issue: "Data transfer bug - RESOLVED. V/I values now displaying correctly. Need frontend verification."
+  current_issue: "CRITICAL DATA TRANSFER BUG FIX FULLY VERIFIED - Frontend displays non-zero V/I values and apparent resistivities correctly."
 
 agent_communication:
   - agent: "main"
