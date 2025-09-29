@@ -187,19 +187,6 @@ subroutine ei2d_ForwardFD(NodeX, NodeY, Cond, VIcalc, Jacobian,                 
   ! (no deallocation required; process ends—kept simple for debugging)
 end subroutine ei2d_ForwardFD
 
-! ---------------------- C ABI: SetNumParamForward -----------------------
-subroutine ei2d_SetNumParamForward(NumParamX, NumParamY) bind(C, name='ei2d_SetNumParamForward')
-  use iso_c_binding
-  use GlobalForw, only: gNumParamX, gNumParamY, gNumParam
-  implicit none
-  integer(c_int), value :: NumParamX, NumParamY
-
-  gNumParamX = NumParamX
-  gNumParamY = NumParamY
-  gNumParam = NumParamX * NumParamY
-
-end subroutine ei2d_SetNumParamForward
-
 ! ---------------------- C ABI: InitInvGlobals -----------------------
 subroutine ei2d_InitInvGlobals(NumData, NumElemX, NumElemY, NumParamX, NumParamY, &
                                InvMethod, IPInvMethod, MaxNumIterInvCG, IPPosMeth, &
