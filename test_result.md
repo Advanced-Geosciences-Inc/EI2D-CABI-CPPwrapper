@@ -229,12 +229,12 @@ metadata:
 test_plan:
   current_focus:
     - "Forward Modeling C-ABI Integration"
-    - "Inversion Workflow with OUT File Generation"
+    - "Frontend Data Display Testing"
   stuck_tasks:
-    - "Inversion Workflow with OUT File Generation"
+    - "Inversion Workflow with OUT File Generation" 
   test_all: false
   test_priority: "high_first"
-  current_issue: "Data transfer bug - backend computes non-zero V/I values but frontend displays zeros"
+  current_issue: "Data transfer bug - RESOLVED. V/I values now displaying correctly. Need frontend verification."
 
 agent_communication:
   - agent: "main"
