@@ -15,7 +15,7 @@
   write(iech, *) 'Stop at ', k1, k2
   close(iech)
 
-  end subroutine CheckPoint
+  end subroutine CheckPointInv
 
 !------------------------------------------------------------------------------
 ! Jacobian times a vector
