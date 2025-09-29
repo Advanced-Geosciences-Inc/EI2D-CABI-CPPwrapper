@@ -173,6 +173,19 @@ class EI2DWrapper:
                 nData           # nData
             )
             
+            # COMPREHENSIVE DEBUG: Analyze VI array before JSON conversion
+            print(f"\n🔍 FINAL VI ARRAY ANALYSIS:")
+            print(f"   Array length: {len(VI)}")  
+            print(f"   Data type: {VI.dtype}")
+            print(f"   Sum: {np.sum(VI)}")
+            print(f"   Non-zero count: {np.count_nonzero(VI)}")
+            print(f"   NaN count: {np.sum(np.isnan(VI))}")
+            print(f"   Infinite count: {np.sum(np.isinf(VI))}")
+            print(f"   Finite count: {np.sum(np.isfinite(VI))}")
+            print(f"   Min/Max finite: {np.min(VI[np.isfinite(VI)])} / {np.max(VI[np.isfinite(VI)])}")
+            print(f"   Sample raw values: {VI[:5]}")
+            print(f"   Sample converted: {[float(vi) if np.isfinite(vi) and not np.isnan(vi) else 0.0 for vi in VI[:5]]}")
+            
             return {
                 "success": True,
                 "nData": nData,
