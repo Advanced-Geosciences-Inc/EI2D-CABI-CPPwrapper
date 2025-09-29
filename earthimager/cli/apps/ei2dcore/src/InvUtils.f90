@@ -4,7 +4,7 @@
 ! subroutine to write debug info to a file named debug.ech
 ! ???: This routine should be deleted later
 
-  subroutine CheckPoint(k1, k2)
+  subroutine CheckPointInv(k1, k2)
   implicit none
 
   integer, intent(in) :: k1, k2
