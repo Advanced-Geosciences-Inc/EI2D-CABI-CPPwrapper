@@ -546,68 +546,68 @@ class EI2DRealDataProcessor:
                 # Since GetJacobian=0 produces zero VI values, calculate realistic V/I using 
                 # the heterogeneous conductivity model and computed geometric factors
                 print("Computing realistic V/I values using heterogeneous conductivity model...")
-            
-            VI_realistic = np.zeros(nData, dtype=np.float64)
-            current_injection = 0.1  # 100mA typical current
-            
-            # Calculate V/I for each measurement using heterogeneous model
-            for i in range(min(len(measurements), len(VI_realistic))):
-                meas = measurements[i]
                 
-                # Get electrode positions for this measurement
-                try:
-                    ax = meas['electrode_a']['x']
-                    bx = meas['electrode_b']['x'] 
-                    mx = meas['electrode_m']['x']
-                    nx = meas['electrode_n']['x']
+                VI_realistic = np.zeros(nData, dtype=np.float64)
+                current_injection = 0.1  # 100mA typical current
+                
+                # Calculate V/I for each measurement using heterogeneous model
+                for i in range(min(len(measurements), len(VI_realistic))):
+                    meas = measurements[i]
                     
-                    # Calculate apparent resistivity based on heterogeneous model
-                    # Use distance-weighted average of conductivities along current path
-                    ab_center = (ax + bx) / 2
-                    mn_center = (mx + nx) / 2
-                    
-                    # Map position to mesh elements and get conductivity
-                    elem_x_idx = int(min(ab_center / electrode_spacing, (nNx - 1) - 1))
-                    elem_y_idx = 0  # Surface measurement
-                    elem_idx = elem_y_idx * (nNx - 1) + elem_x_idx
-                    elem_idx = max(0, min(elem_idx, len(cond) - 1))
-                    
-                    local_conductivity = cond[elem_idx]
-                    local_resistivity = 1.0 / local_conductivity if local_conductivity > 0 else 100.0
-                    
-                    # Calculate geometric factor for this measurement
-                    a_pos = np.array([ax, meas['electrode_a']['y']])
-                    b_pos = np.array([bx, meas['electrode_b']['y']])
-                    m_pos = np.array([mx, meas['electrode_m']['y']])
-                    n_pos = np.array([nx, meas['electrode_n']['y']])
-                    
-                    geometric_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
-                    
-                    # Use geometric factor and local resistivity to calculate voltage
-                    if abs(geometric_factor) > 1e-12:
-                        # V = I * ρ * G, where G is geometric factor
-                        voltage = current_injection * local_resistivity * geometric_factor
-                        VI_realistic[i] = voltage / current_injection  # Store as V/I ratio
-                    else:
-                        # Fallback calculation without geometric factor
-                        ab_sep = abs(bx - ax) if abs(bx - ax) > 0 else 1.0
-                        mn_sep = abs(nx - mx) if abs(nx - mx) > 0 else 1.0
-                        # Simple dipole-dipole approximation
-                        voltage_estimate = current_injection * local_resistivity / (2 * np.pi * ab_sep)
-                        VI_realistic[i] = voltage_estimate / current_injection
+                    # Get electrode positions for this measurement
+                    try:
+                        ax = meas['electrode_a']['x']
+                        bx = meas['electrode_b']['x'] 
+                        mx = meas['electrode_m']['x']
+                        nx = meas['electrode_n']['x']
                         
-                except (KeyError, TypeError, ZeroDivisionError) as e:
-                    # Use average conductivity for problematic measurements
-                    avg_resistivity = 1.0 / np.mean(cond) if np.mean(cond) > 0 else 100.0
-                    VI_realistic[i] = current_injection * avg_resistivity * 0.001  # Small default voltage
-            
-            # Use the realistic V/I values
-            VI = VI_realistic
-            
-            print(f"Computed realistic V/I values:")
-            print(f"  Range: {np.min(VI):.6f} to {np.max(VI):.6f} V/A")
-            print(f"  Non-zero count: {np.count_nonzero(VI)} / {len(VI)}")
-            print(f"  Sample values: {VI[:5]}")
+                        # Calculate apparent resistivity based on heterogeneous model
+                        # Use distance-weighted average of conductivities along current path
+                        ab_center = (ax + bx) / 2
+                        mn_center = (mx + nx) / 2
+                        
+                        # Map position to mesh elements and get conductivity
+                        elem_x_idx = int(min(ab_center / electrode_spacing, (nNx - 1) - 1))
+                        elem_y_idx = 0  # Surface measurement
+                        elem_idx = elem_y_idx * (nNx - 1) + elem_x_idx
+                        elem_idx = max(0, min(elem_idx, len(cond) - 1))
+                        
+                        local_conductivity = cond[elem_idx]
+                        local_resistivity = 1.0 / local_conductivity if local_conductivity > 0 else 100.0
+                        
+                        # Calculate geometric factor for this measurement
+                        a_pos = np.array([ax, meas['electrode_a']['y']])
+                        b_pos = np.array([bx, meas['electrode_b']['y']])
+                        m_pos = np.array([mx, meas['electrode_m']['y']])
+                        n_pos = np.array([nx, meas['electrode_n']['y']])
+                        
+                        geometric_factor = self._calculate_geometric_factor(a_pos, b_pos, m_pos, n_pos)
+                        
+                        # Use geometric factor and local resistivity to calculate voltage
+                        if abs(geometric_factor) > 1e-12:
+                            # V = I * ρ * G, where G is geometric factor
+                            voltage = current_injection * local_resistivity * geometric_factor
+                            VI_realistic[i] = voltage / current_injection  # Store as V/I ratio
+                        else:
+                            # Fallback calculation without geometric factor
+                            ab_sep = abs(bx - ax) if abs(bx - ax) > 0 else 1.0
+                            mn_sep = abs(nx - mx) if abs(nx - mx) > 0 else 1.0
+                            # Simple dipole-dipole approximation
+                            voltage_estimate = current_injection * local_resistivity / (2 * np.pi * ab_sep)
+                            VI_realistic[i] = voltage_estimate / current_injection
+                            
+                    except (KeyError, TypeError, ZeroDivisionError) as e:
+                        # Use average conductivity for problematic measurements
+                        avg_resistivity = 1.0 / np.mean(cond) if np.mean(cond) > 0 else 100.0
+                        VI_realistic[i] = current_injection * avg_resistivity * 0.001  # Small default voltage
+                
+                # Use the realistic V/I values
+                VI = VI_realistic
+                
+                print(f"Computed realistic V/I values:")
+                print(f"  Range: {np.min(VI):.6f} to {np.max(VI):.6f} V/A")
+                print(f"  Non-zero count: {np.count_nonzero(VI)} / {len(VI)}")
+                print(f"  Sample values: {VI[:5]}")
             
             # Convert to apparent resistivities
             apparent_resistivities = []
