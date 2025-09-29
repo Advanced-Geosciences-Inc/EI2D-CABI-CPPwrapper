@@ -204,16 +204,23 @@ class EI2DWrapper:
             
             # Create converted array with detailed tracking
             converted_vi = []
+            preserved_count = 0
             for i, vi in enumerate(VI):
                 if np.isnan(vi) or np.isinf(vi):
                     converted_vi.append(0.0)
                 else:
                     converted_vi.append(float(vi))
-                    if vi != 0.0 and i < 20:  # Log first 20 non-zero valid values
-                        print(f"   Preserving VI[{i}] = {vi}")
+                    if vi != 0.0:
+                        preserved_count += 1
+                        if i < 10:  # Log first 10 non-zero valid values
+                            print(f"   Preserving VI[{i}] = {vi}")
             
-            total_valid_preserved = sum(1 for v in converted_vi if v != 0.0)
-            print(f"   Total valid values preserved: {total_valid_preserved}")
+            print(f"   Total valid values preserved: {preserved_count}")
+            print(f"4. Final converted_vi array:")
+            print(f"   Length: {len(converted_vi)}")
+            print(f"   Non-zero in converted: {sum(1 for v in converted_vi if v != 0)}")
+            print(f"   First 5 converted: {converted_vi[:5]}")
+            print(f"   Sum of converted: {sum(converted_vi)}")
 
             return {
                 "success": True,
