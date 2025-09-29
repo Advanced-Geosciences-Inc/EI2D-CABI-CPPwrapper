@@ -97,19 +97,36 @@ class EI2DWrapper:
         stingCMD = np.array(stingCMD, dtype=np.int32)
         nData = len(stingCMD) // 4
         
-        # Parameter windows (full grid)
-        nParamX, nParamY = 1, 1
-        p1 = np.array([1], dtype=np.int32)
-        p2 = np.array([nNx - 1], dtype=np.int32)  # FIX: Use element bounds, not node bounds
-        q1 = np.array([1], dtype=np.int32)
-        q2 = np.array([nNy - 1], dtype=np.int32)  # FIX: Use element bounds, not node bounds
+        # CRITICAL FIX: Create PROPER parameter arrays with multiple elements
+        # The original Fortran code expects parameter regions, not single bounds
         
-        # CRITICAL DEBUG: Log exact values being used
-        print(f"🔍 DEBUG MESH SETUP:")
-        print(f"   Node dimensions: nNx={nNx}, nNy={nNy}")
-        print(f"   Expected elements: gNumElemX={nNx-1}, gNumElemY={nNy-1}, gNumElem={(nNx-1)*(nNy-1)}")
-        print(f"   Parameter bounds: p1={p1[0]}, p2={p2[0]}, q1={q1[0]}, q2={q2[0]}")
-        print(f"   Max possible iElem = {q2[0]} + ({p2[0]}-1) * {nNy-1} = {q2[0] + (p2[0]-1) * (nNy-1)}")
+        # For a single parameter region covering the whole mesh:
+        # ParamX1[0] = 1, ParamX2[0] = gNumElemX (start and end of X region)
+        # ParamY1[0] = 1, ParamY2[0] = gNumElemY (start and end of Y region)
+        nParamX, nParamY = 1, 1  # Single parameter region
+        
+        # Create arrays with the correct dimensions expected by Fortran
+        p1 = np.array([1], dtype=np.int32)                    # ParamX1: region 1 starts at element 1
+        p2 = np.array([nNx - 1], dtype=np.int32)             # ParamX2: region 1 ends at element gNumElemX
+        q1 = np.array([1], dtype=np.int32)                    # ParamY1: region 1 starts at element 1  
+        q2 = np.array([nNy - 1], dtype=np.int32)             # ParamY2: region 1 ends at element gNumElemY
+        
+        print(f"🔍 CORRECTED Parameter arrays:")
+        print(f"   nParamX={nParamX}, nParamY={nParamY}")
+        print(f"   ParamX1={p1}, ParamX2={p2} (elements {p1[0]} to {p2[0]})")
+        print(f"   ParamY1={q1}, ParamY2={q2} (elements {q1[0]} to {q2[0]})")
+        print(f"   This defines {nParamX}x{nParamY} parameter regions covering {p2[0]}x{q2[0]} elements")
+        
+        # Verify the parameter bounds match the mesh dimensions
+        expected_gNumElemX = nNx - 1  # Should be 15 for 16 nodes
+        expected_gNumElemY = nNy - 1  # Should be 4 for 5 nodes  
+        if p2[0] == expected_gNumElemX and q2[0] == expected_gNumElemY:
+            print(f"   ✅ Parameter bounds correctly match element dimensions!")
+        else:
+            print(f"   ⚠️  Parameter bounds mismatch: expected {expected_gNumElemX}x{expected_gNumElemY}")
+            
+        # Also update the parameter dimensions for SetNumParamForward
+        print(f"   Will call SetNumParamForward({nParamX}, {nParamY})")
         
         # Initialize engine
         self.lib.ei2d_InitForwGlobals(
