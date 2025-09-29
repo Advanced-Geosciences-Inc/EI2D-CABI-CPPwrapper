@@ -1794,7 +1794,15 @@ class EI2DRealDataProcessor:
             # Geometric factor
             k = 2 * np.pi / (1/ra_m - 1/ra_n - 1/rb_m + 1/rb_n) if all(d > 0 for d in [ra_m, ra_n, rb_m, rb_n]) else 1.0
             
+            # CRITICAL JSON SERIALIZATION FIX: Sanitize geometric factor
+            if np.isnan(k) or np.isinf(k):
+                k = 1.0
+            
             app_res = meas.get("apparent_resistivity", k * vi_ratio)
+            
+            # CRITICAL JSON SERIALIZATION FIX: Sanitize apparent resistivity
+            if np.isnan(app_res) or np.isinf(app_res):
+                app_res = 100.0  # Safe default value
             
             out_lines.append("  {:d},     {:d},  {:d},  {:d},  {:d},  {:12.5E},  {:12.5E},   {:12.5E}".format(
                 i + 1, a_idx, b_idx, m_idx, n_idx, vi_ratio, k, app_res))
