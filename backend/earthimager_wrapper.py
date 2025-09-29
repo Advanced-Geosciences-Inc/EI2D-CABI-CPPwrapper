@@ -672,6 +672,14 @@ class EI2DRealDataProcessor:
             apparent_resistivities = []
             geometric_factors = []
             
+            # Create converted VI array with detailed tracking (same as forward_fd_simple)
+            converted_vi = []
+            for i, vi in enumerate(VI):
+                if np.isnan(vi) or np.isinf(vi):
+                    converted_vi.append(0.0)
+                else:
+                    converted_vi.append(float(vi))
+            
             for i, vi in enumerate(VI):
                 if i < len(measurements):
                     meas = measurements[i]
