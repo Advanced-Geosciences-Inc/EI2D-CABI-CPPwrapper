@@ -503,10 +503,6 @@ class EI2DRealDataProcessor:
             self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
             print("SetNumParamForward completed successfully!")
             
-            # Set conservative parameter regions
-            self.lib.ei2d_SetNumParamForward(nParamX, nParamY)
-            print("SetNumParamForward completed successfully")
-            
             # Prepare output arrays with correct sizing
             VI = np.zeros(nData, dtype=np.float64)
             jacobian = np.zeros(nData * nParamX * nParamY, dtype=np.float64)
