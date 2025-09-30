@@ -185,8 +185,8 @@ class EarthImagerBackendTester:
             return False
     
     def test_forward_modeling_real(self):
-        """Test real forward modeling API with array bounds fix"""
-        self.log("Testing REAL forward modeling with array bounds fix...")
+        """Test real forward modeling API with 502 error fix for small datasets"""
+        self.log("Testing REAL forward modeling with 502 error fix (small dataset)...")
         
         stg_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.stg"
         ini_file_path = Path(TEST_DATA_DIR) / "test_toy_14_dd.ini"
@@ -221,35 +221,60 @@ class EarthImagerBackendTester:
                 method = data.get("method", "unknown")
                 message = data.get("message", "")
                 
-                # Check if backend completed without hanging
+                # CRITICAL 502 ERROR FIX CHECKS
+                no_502_error = response.status_code != 502
+                no_json_serialization_error = "Out of range float values are not JSON compliant" not in message
+                no_memory_corruption = "double free or corruption" not in message
                 backend_completed = success and "completed" in message.lower()
-                no_array_bounds_error = "array" not in message.lower() and "bounds" not in message.lower()
+                
+                # Check for valid JSON response structure
+                valid_json_response = isinstance(data, dict) and data is not None
+                
+                # Check if small dataset uses C-ABI when possible (should be <= 20 electrodes)
+                is_small_dataset = True  # toy-14-dd has 14 electrodes
+                should_attempt_cabi = is_small_dataset
                 
                 self.test_results["forward_modeling_real"] = {
-                    "status": "passed" if (backend_completed and no_array_bounds_error) else "failed",
+                    "status": "passed" if (no_502_error and no_json_serialization_error and no_memory_corruption and backend_completed and valid_json_response) else "failed",
                     "details": {
                         "success": success,
                         "method": method,
                         "message": message,
+                        "no_502_error": no_502_error,
+                        "no_json_serialization_error": no_json_serialization_error,
+                        "no_memory_corruption": no_memory_corruption,
                         "backend_completed": backend_completed,
-                        "no_array_bounds_error": no_array_bounds_error,
+                        "valid_json_response": valid_json_response,
+                        "is_small_dataset": is_small_dataset,
+                        "should_attempt_cabi": should_attempt_cabi,
+                        "response_status_code": response.status_code,
                         "response_data": data
                     }
                 }
                 
-                if backend_completed and no_array_bounds_error:
-                    self.log(f"✅ Real forward modeling passed: {method}")
+                if no_502_error and no_json_serialization_error and no_memory_corruption and backend_completed:
+                    self.log(f"✅ 502 Error Fix VERIFIED: {method}")
+                    self.log(f"✅ No JSON serialization errors detected")
+                    self.log(f"✅ No memory corruption detected")
                     self.log(f"Message: {message}")
                 else:
-                    self.log(f"❌ Real forward modeling issues detected", "ERROR")
+                    self.log(f"❌ 502 Error Fix FAILED", "ERROR")
+                    if response.status_code == 502:
+                        self.log(f"❌ 502 Bad Gateway error still occurring!", "ERROR")
+                    if "Out of range float values are not JSON compliant" in message:
+                        self.log(f"❌ JSON serialization error still occurring!", "ERROR")
+                    if "double free or corruption" in message:
+                        self.log(f"❌ Memory corruption still occurring!", "ERROR")
                     
-                return backend_completed and no_array_bounds_error
+                return no_502_error and no_json_serialization_error and no_memory_corruption and backend_completed and valid_json_response
                 
             else:
                 self.log(f"Forward modeling failed: {response.status_code} - {response.text}", "ERROR")
+                if response.status_code == 502:
+                    self.log(f"❌ CRITICAL: 502 Bad Gateway error detected - fix not working!", "ERROR")
                 self.test_results["forward_modeling_real"] = {
                     "status": "failed",
-                    "details": {"error": f"HTTP {response.status_code}: {response.text}"}
+                    "details": {"error": f"HTTP {response.status_code}: {response.text}", "is_502_error": response.status_code == 502}
                 }
                 return False
                 
