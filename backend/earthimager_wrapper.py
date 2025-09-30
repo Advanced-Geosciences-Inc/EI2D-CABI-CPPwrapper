@@ -750,7 +750,7 @@ class EI2DRealDataProcessor:
                     # USE TRACKED CONVERTED ARRAY: This preserves the valid Fortran values
                     "vi_data": converted_vi,
                     "apparent_resistivities": [float(ar) if not (np.isnan(ar) or np.isinf(ar)) else 0.0 for ar in apparent_resistivities],
-                    "geometric_factors": geometric_factors,
+                    "geometric_factors": [float(gf) if not (np.isnan(gf) or np.isinf(gf)) else 1.0 for gf in geometric_factors],
                     "electrode_positions": [[e['x'], e['y'], e['z']] for e in electrodes],
                     "measurement_configs": [[m["electrode_a"]["x"], m["electrode_b"]["x"], 
                                            m["electrode_m"]["x"], m["electrode_n"]["x"]] for m in measurements[:10]]
@@ -759,8 +759,8 @@ class EI2DRealDataProcessor:
                     "node_x": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in nodeX],
                     "node_y": [float(y) if not (np.isnan(y) or np.isinf(y)) else 0.0 for y in nodeY],
                     "conductivity": [float(c) if not (np.isnan(c) or np.isinf(c)) else 0.01 for c in cond],
-                    "mesh_x_coords": mesh_x_coords,
-                    "mesh_y_coords": mesh_y_coords
+                    "mesh_x_coords": [float(x) if not (np.isnan(x) or np.isinf(x)) else 0.0 for x in mesh_x_coords],
+                    "mesh_y_coords": [float(y) if not (np.isnan(y) or np.isinf(y)) else 0.0 for y in mesh_y_coords]
                 },
                 "message": f"FIXED: Real EI2D forward modeling completed with conservative mesh sizing. {nData} V/I values computed using {'FE' if forw_mod_meth == 1 else 'FD'} method.",
                 "fix_applied": "Conservative mesh sizing and bounds checking to avoid Fortran array bounds errors"
