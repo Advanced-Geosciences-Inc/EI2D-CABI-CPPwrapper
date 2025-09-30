@@ -677,8 +677,9 @@ class EarthImagerBackendTester:
             ("Health Check", self.test_health_check),
             ("STG File Processing", self.test_stg_file_processing),
             ("INI File Processing", self.test_ini_file_processing),
-            ("Forward Modeling Real C-ABI", self.test_forward_modeling_real),
-            ("Inversion Workflow", self.test_inversion_workflow),
+            ("Forward Modeling Real (502 Fix)", self.test_forward_modeling_real),
+            ("Large Dataset Protection", self.test_large_dataset_protection),
+            ("Inversion Workflow (502 Fix)", self.test_inversion_workflow),
             ("OUT File Validation", self.test_out_file_validation),
             ("API Endpoints", self.test_api_endpoints)
         ]
